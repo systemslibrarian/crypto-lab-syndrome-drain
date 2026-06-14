@@ -216,6 +216,43 @@ h1 {
   box-shadow: var(--shadow);
 }
 
+/* ---- visual hierarchy: guide the eye through the three core steps, and let
+   reference material recede ---- */
+.card-primary {
+  border-color: var(--accent);
+  box-shadow: var(--shadow), inset 4px 0 0 -1px var(--accent);
+}
+.card-reference {
+  background: transparent;
+  box-shadow: none;
+  border-style: dashed;
+}
+/* numbered "Step N · …" eyebrow for the core narrative spine */
+.card-step {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--accent);
+}
+.step-num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 99px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.card-tag {
+  color: var(--text-dim);
+}
+.gaps .card-tag {
+  color: var(--warn);
+}
+
 h2 {
   font-size: clamp(1.3rem, 4.5vw, 1.7rem);
   margin: 0 0 0.6rem;
@@ -678,10 +715,38 @@ tr.is-below td {
 .tldr-pitch {
   color: var(--text);
   max-width: 72ch;
-  margin: 0 0 1.4rem;
+  margin: 0 0 1.1rem;
+  font-size: 1.05rem;
 }
 .tldr-pitch strong {
   color: var(--text);
+}
+/* the "this is the part that bites you" callout */
+.tldr-stat {
+  position: relative;
+  margin: 0 0 1.5rem;
+  padding: 0.95rem 1.1rem;
+  max-width: 76ch;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+}
+.tldr-stat strong {
+  color: var(--danger);
+}
+.tldr-stat-tag {
+  display: inline-block;
+  margin-right: 0.5rem;
+  padding: 0.08rem 0.5rem;
+  border-radius: 99px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  vertical-align: 0.08em;
 }
 .tldr-grid {
   display: grid;
@@ -719,41 +784,98 @@ tr.is-below td {
 
 /* ===================== live security-level meter ===================== */
 .level-meter {
-  margin: 0 0 1.25rem;
-  padding: 0.9rem 1rem;
+  margin: 0 0 1.5rem;
+}
+
+/* the bold, glanceable verdict — color and icon shift as you drag D */
+.lm-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
+  border-left: 6px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-elev-2);
+  margin-bottom: 0.9rem;
+  transition: border-color 0.2s ease, background 0.2s ease;
 }
-.lm-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.5rem;
-  margin: 0 0 0.8rem;
+.lm-banner-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 99px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.lm-banner-status {
+  margin: 0;
+  font-size: clamp(1.1rem, 3.5vw, 1.35rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.lm-banner-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
+.lm-banner-sub strong {
+  color: var(--text);
+  white-space: nowrap;
+}
+/* banner color states */
+.lm-banner.lm-safe {
+  border-color: var(--safe);
+  background: var(--safe-soft);
+}
+.lm-safe .lm-banner-icon {
+  background: var(--safe);
+  color: #08111f;
+}
+.lm-safe .lm-banner-status {
+  color: var(--safe);
+}
+.lm-banner.lm-warn {
+  border-color: var(--warn);
+  background: rgba(227, 179, 65, 0.12);
+}
+.lm-warn .lm-banner-icon {
+  background: var(--warn);
+  color: #08111f;
+}
+.lm-warn .lm-banner-status {
+  color: var(--warn);
+}
+.lm-banner.lm-crit {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+.lm-crit .lm-banner-icon {
+  background: var(--danger);
+  color: #fff;
+}
+.lm-crit .lm-banner-status {
+  color: var(--danger);
 }
 .lm-live {
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--accent);
+  color: var(--text-dim);
+  margin-right: 0.3rem;
 }
 .lm-live::first-letter {
-  /* the bullet — give it a gentle pulse to read as "live" */
+  /* the bullet — a gentle pulse to read as "live" */
   animation: lm-pulse 2s ease-in-out infinite;
 }
 @keyframes lm-pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
-}
-.lm-head-text {
-  flex: 1 1 16rem;
-}
-.lm-d {
-  color: var(--text);
-  white-space: nowrap;
+  50% { opacity: 0.3; }
 }
 .lm-list {
   list-style: none;
@@ -777,11 +899,20 @@ tr.is-below td {
 }
 .lm-track {
   position: relative;
-  height: 12px;
+  height: 14px;
   border-radius: 99px;
   background: var(--bg);
   border: 1px solid var(--border);
   overflow: hidden;
+}
+/* the below-floor "danger zone" — the bar tip crossing left of the floor
+   marker is the visual you want people to catch */
+.lm-zone {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--danger-soft);
 }
 .lm-fill {
   position: absolute;
@@ -969,8 +1100,14 @@ tr.is-below td {
     height: 14px;
   }
   /* give dense blocks more room on small screens */
-  .level-meter {
-    padding: 0.8rem 0.75rem;
+  .lm-banner {
+    padding: 0.85rem 0.9rem;
+    gap: 0.75rem;
+  }
+  .lm-banner-icon {
+    width: 2.2rem;
+    height: 2.2rem;
+    font-size: 1.25rem;
   }
   .faq-item {
     padding: 0.85rem 0.95rem 0.95rem;

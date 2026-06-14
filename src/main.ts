@@ -261,20 +261,54 @@ function levelBand(margin: number): { label: string; cls: string } {
   return { label: 'Dangerously low', cls: 'lm-crit' };
 }
 
+/** Overall risk verdict (worst scheme drives it) — the big glanceable banner. */
+function overallRisk(worstMargin: number, belowCount: number): {
+  level: string;
+  icon: string;
+  status: string;
+  sub: string;
+} {
+  if (belowCount > 0) {
+    return {
+      level: 'crit',
+      icon: '✕',
+      status:
+        belowCount === 3
+          ? 'All three are below NIST Level 1'
+          : `${belowCount} of 3 are below NIST Level 1`,
+      sub: 'Effective security has dropped under the 143-bit floor. Rotate the key.',
+    };
+  }
+  if (worstMargin < 8) {
+    return {
+      level: 'warn',
+      icon: '⚠',
+      status: 'Margin is getting thin',
+      sub: 'Still above the floor, but the safety buffer is shrinking — plan to rotate.',
+    };
+  }
+  return {
+    level: 'safe',
+    icon: '✓',
+    status: 'Comfortably above the floor',
+    sub: 'Every scheme keeps a healthy margin at this reuse level.',
+  };
+}
+
 /**
- * A compact, intuitive meter that mirrors the chart in words: one bar per
- * scheme, colored by how far it sits from the 143-bit floor. The exact numbers
- * live in the readout table; this layer is the "is it OK?" glance.
+ * The glanceable "how bad is it right now?" panel: a bold risk banner driven by
+ * the worst-case scheme, plus one bar per scheme showing how far each sits from
+ * the 143-bit floor (the shaded zone is the below-floor danger area). Exact
+ * numbers live in the readout table; this layer is the gut-check.
  */
 function renderLevelMeter(D: number, log2d: number): void {
   const host = $('#level-meter');
   const floorFrac = clamp01((FLOOR - Y_MIN) / (Y_MAX - Y_MIN));
 
-  const belowCount = SCHEMES.filter((s) => isBelowFloor(s, D)).length;
-  const headline =
-    belowCount === 0
-      ? `All three schemes stay above the ${FLOOR}-bit floor.`
-      : `${belowCount} of 3 schemes ${belowCount === 1 ? 'has' : 'have'} dropped below the ${FLOOR}-bit floor.`;
+  const margins = SCHEMES.map((s) => marginToFloor(s, D));
+  const worstMargin = Math.min(...margins);
+  const belowCount = margins.filter((m) => m < 0).length;
+  const risk = overallRisk(worstMargin, belowCount);
 
   const rows = SCHEMES.map((s) => {
     const bits = effectiveSecurityBits(s, D);
@@ -287,6 +321,7 @@ function renderLevelMeter(D: number, log2d: number): void {
           <span class="swatch" style="background:${schemeColor(s.id)}"></span>${s.label}
         </span>
         <span class="lm-track" role="presentation">
+          <span class="lm-zone" style="width:${(floorFrac * 100).toFixed(1)}%"></span>
           <span class="lm-fill" style="width:${(fillFrac * 100).toFixed(1)}%"></span>
           <span class="lm-floor" style="left:${(floorFrac * 100).toFixed(1)}%"></span>
         </span>
@@ -295,15 +330,18 @@ function renderLevelMeter(D: number, log2d: number): void {
   }).join('');
 
   host.innerHTML = `
-    <p class="lm-head">
-      <span class="lm-live">● live</span>
-      <span class="lm-head-text">
-        At the slider's current setting —
-        <strong class="lm-d">D = 2<sup>${log2d}</sup></strong>
-        <span class="muted small">(${big(D)} session${D === 1 ? '' : 's'} per key)</span>
-        — ${headline}
-      </span>
-    </p>
+    <div class="lm-banner lm-${risk.level}">
+      <span class="lm-banner-icon" aria-hidden="true">${risk.icon}</span>
+      <div class="lm-banner-text">
+        <p class="lm-banner-status">${risk.status}</p>
+        <p class="lm-banner-sub">
+          <span class="lm-live">● live</span>
+          At <strong>D = 2<sup>${log2d}</sup></strong>
+          <span class="muted">(${big(D)} session${D === 1 ? '' : 's'} per key)</span>
+          — ${risk.sub}
+        </p>
+      </div>
+    </div>
     <ul class="lm-list">${rows}</ul>`;
 }
 

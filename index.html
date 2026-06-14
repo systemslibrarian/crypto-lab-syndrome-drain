@@ -58,14 +58,25 @@
             A reused public key quietly loses security — no attack required
           </h2>
           <p class="tldr-pitch">
-            Code-based KEMs (BIKE, HQC, Classic McEliece) rest on the hardness of
-            <strong>syndrome decoding</strong>. Each time you reuse <em>one</em>
-            public key for another session, an attacker collects another syndrome
-            — and decoding <em>one out of many</em> gets cheaper. Reuse a key for
-            <strong>D</strong> sessions and its effective security falls by about
-            <strong>½·log₂(D)</strong> bits. <strong>Single-session security is
-            untouched</strong>; the fix is simply to rotate keys on a schedule
-            tied to traffic.
+            It never throws an error. The handshake still succeeds and the
+            ciphertext still decrypts — yet, quietly, the security margin you were
+            promised is draining away. Code-based KEMs (BIKE, HQC, Classic
+            McEliece) rest on the hardness of <strong>syndrome decoding</strong>.
+            Each time you reuse <em>one</em> public key for another session, an
+            attacker collects another syndrome — and decoding <em>one out of
+            many</em> gets cheaper. Reuse a key for <strong>D</strong> sessions
+            and its effective security falls by about <strong>½·log₂(D)</strong>
+            bits.
+          </p>
+
+          <p class="tldr-stat">
+            <span class="tldr-stat-tag">The trap</span>
+            Nothing breaks and nothing warns you. A single key reused for
+            <strong>2¹¹ sessions</strong> (BIKE) or <strong>2²¹</strong> (Classic
+            McEliece) has already slipped below the very NIST Level-1 bar the
+            scheme was certified at — silently. Single-session security is
+            untouched; the only fix is to rotate keys on a schedule tied to
+            traffic.
           </p>
 
           <div class="tldr-grid">
@@ -113,7 +124,8 @@
         </section>
 
         <!-- ======================= VISUALIZER ======================= -->
-        <section id="visualizer" class="card" aria-labelledby="viz-h">
+        <section id="visualizer" class="card card-primary" aria-labelledby="viz-h">
+          <p class="eyebrow card-step"><span class="step-num">1</span> See it</p>
           <h2 id="viz-h">The erosion, as you reuse one public key</h2>
           <p class="lede">
             Drag <strong>D</strong> — the number of session keys derived from a
@@ -219,6 +231,7 @@
 
         <!-- ======================= MECHANISM ======================= -->
         <section class="card" aria-labelledby="mech-h">
+          <p class="eyebrow card-step"><span class="step-num">2</span> Understand it</p>
           <h2 id="mech-h">Why it drains: the DOOM lever</h2>
           <div class="prose">
             <p>
@@ -257,7 +270,8 @@
         </section>
 
         <!-- =================== ROTATION CALCULATOR =================== -->
-        <section class="card" aria-labelledby="ops-h">
+        <section class="card card-primary" aria-labelledby="ops-h">
+          <p class="eyebrow card-step"><span class="step-num">3</span> Act on it</p>
           <h2 id="ops-h">Key-rotation policy calculator</h2>
           <p class="lede">
             The operational takeaway: rotate public keys on a schedule tied to
@@ -362,7 +376,8 @@
         </section>
 
         <!-- =================== PARAMETERS & SOURCES =================== -->
-        <section class="card" aria-labelledby="src-h">
+        <section class="card card-reference" aria-labelledby="src-h">
+          <p class="eyebrow card-tag muted">Reference</p>
           <h2 id="src-h">Parameters &amp; sources</h2>
           <p class="lede">
             Every number above traces to a published value. Here is each scheme's
@@ -421,6 +436,7 @@
 
         <!-- =================== MISCONCEPTIONS =================== -->
         <section class="card" aria-labelledby="myth-h">
+          <p class="eyebrow card-tag">Good to know</p>
           <h2 id="myth-h">Common misconceptions</h2>
           <p class="lede">
             The fast version of this result is easy to over- or under-read. Five
@@ -483,6 +499,7 @@
 
         <!-- ======================= KNOWN GAPS ======================= -->
         <section class="card gaps" aria-labelledby="gaps-h">
+          <p class="eyebrow card-tag">Caveats</p>
           <h2 id="gaps-h">Known gaps &amp; honest caveats</h2>
           <ul class="prose">
             <li>
