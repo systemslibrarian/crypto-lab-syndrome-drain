@@ -367,7 +367,7 @@ function renderSyndromeCards(D: number): void {
       s.syndromeGrowth === 'nD'
         ? `ring shifts donate n = ${s.codeLengthN.toLocaleString()} per session`
         : s.id === 'hqc'
-          ? `ring blocked by the reduction — one per session`
+          ? `ring blocked by the P′·T_ℓ truncation — one per session`
           : `no ring — one syndrome per session`;
     const count = syndromeCount(s, D);
     li.innerHTML = `

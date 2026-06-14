@@ -260,8 +260,11 @@
 
           <p class="prose footnote">
             BIKE re-harvests its whole ring every session (≈&nbsp;n·D), while
-            HQC's reduction blocks the ring (≈&nbsp;D) and Classic McEliece has no
-            ring at all (≈&nbsp;D). Because <strong>n is a constant</strong>, that
+            HQC's reduction blocks the ring (≈&nbsp;D) — to cancel the message it
+            multiplies by <code>P′·T_ℓ</code>, which destroys the cyclic
+            structure, so the <em>n</em> shifts no longer yield valid syndromes —
+            and Classic McEliece has no ring at all (≈&nbsp;D). Because
+            <strong>n is a constant</strong>, that
             richer harvest is a fixed head-start already folded into BIKE's
             single-instance number — so all three lose ½ bit per
             <em>doubling</em> of D, and the scheme that starts with the thinnest
