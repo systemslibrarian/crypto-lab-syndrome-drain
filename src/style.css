@@ -345,6 +345,31 @@ input[type='number']:focus {
   margin: 0.4rem 0 0;
 }
 
+/* ============================== presets ============================== */
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+.preset {
+  background: var(--bg-elev-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 2.2rem;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.preset:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
 /* ============================== chart ============================== */
 .chart-wrap {
   margin: 0 0 1.5rem;
@@ -368,7 +393,69 @@ input[type='number']:focus {
   max-width: 70ch;
 }
 
+/* ---- chart legend + controls ---- */
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  margin-top: 0.9rem;
+}
+.chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.86rem;
+}
+.lg-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+}
+.lg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+}
+.lg-marks {
+  color: var(--text-dim);
+}
+.lg-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex: none;
+}
+.lg-diamond {
+  width: 11px;
+  height: 11px;
+  background: var(--bg-elev-2);
+  border: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  flex: none;
+}
+.toggle-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  min-height: 2.2rem;
+}
+.toggle-line input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--accent);
+}
+
 /* svg element styles driven by classes set in main.ts */
+.paper-mark {
+  stroke-width: 2.5;
+}
 .axis-line {
   stroke: var(--border);
   stroke-width: 1;
@@ -509,6 +596,31 @@ tr.is-below td {
   margin: 0.3rem 0 0;
 }
 
+/* ===================== parameters & sources ===================== */
+.sources-details {
+  margin-top: 0.5rem;
+}
+.sources-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 0.4rem 0;
+  min-height: 2.2rem;
+}
+.sources-details summary:hover {
+  text-decoration: underline;
+}
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 0.6rem;
+}
+.src-table {
+  min-width: 640px;
+}
+.ops-table {
+  margin-top: 0;
+}
+
 /* ============================= gaps ============================= */
 .gaps {
   border-color: var(--warn);
@@ -590,6 +702,16 @@ tr.is-below td {
   }
   .scheme-cell {
     justify-content: flex-end;
+  }
+  .src-table {
+    min-width: 0;
+  }
+  .table-scroll {
+    overflow-x: visible;
+  }
+  .chart-controls {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

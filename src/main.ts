@@ -12,6 +12,7 @@ import {
   isBelowFloor,
   syndromeCount,
   crossoverD,
+  maxSafeReuseLog2,
   maxLog2DForDisplay,
   type SchemeParams,
 } from './model.ts';
@@ -41,6 +42,12 @@ const svgEl = (tag: string, attrs: Record<string, string | number>): SVGElement 
   const el = document.createElementNS(SVG_NS, tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
   return el;
+};
+/** A <title> child — native SVG tooltip, also read by assistive tech. */
+const svgTitle = (text: string): SVGElement => {
+  const t = document.createElementNS(SVG_NS, 'title');
+  t.textContent = text;
+  return t;
 };
 
 /** Resolve a scheme's chart color from CSS variables (keeps theme in CSS). */
@@ -145,7 +152,8 @@ function renderChart(currentLog2D: number): void {
   floorLbl.textContent = `Level-1 floor: ${FLOOR} bits`;
   svg.appendChild(floorLbl);
 
-  // --- one polyline per scheme + its crossover marker ---
+  // --- one polyline per scheme + its crossover markers ---
+  const showPaper = ($('#show-paper') as HTMLInputElement).checked;
   const SAMPLES = 120;
   for (const s of SCHEMES) {
     const color = schemeColor(s.id);
@@ -158,12 +166,32 @@ function renderChart(currentLog2D: number): void {
     }
     svg.appendChild(svgEl('path', { class: 'scheme-line', d, stroke: color }));
 
-    // computed crossover dot (where the modeled curve crosses the floor)
     const c = crossoverD(s);
+    // MODELED crossover: filled circle where the idealized √D curve meets the floor.
     if (c.computedLog2Exact >= 0 && c.computedLog2Exact <= MAX_LOG2D) {
-      svg.appendChild(
-        svgEl('circle', { class: 'cross-dot', cx: xOf(c.computedLog2Exact), cy: yOf(FLOOR), r: 5, fill: color }),
-      );
+      const dot = svgEl('circle', {
+        class: 'cross-dot',
+        cx: xOf(c.computedLog2Exact),
+        cy: yOf(FLOOR),
+        r: 5,
+        fill: color,
+      });
+      dot.appendChild(svgTitle(`${s.label}: modeled crossover ≈ 2^${c.computedLog2} (idealized √D law)`));
+      svg.appendChild(dot);
+    }
+    // PAPER-STATED crossover: hollow diamond at the paper's full-ISD value.
+    if (showPaper && c.paperStatedLog2 !== 'UNKNOWN' && c.paperStatedLog2 <= MAX_LOG2D) {
+      const x = xOf(c.paperStatedLog2);
+      const y = yOf(FLOOR);
+      const r = 6;
+      const diamond = svgEl('polygon', {
+        class: 'paper-mark',
+        points: `${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`,
+        stroke: color,
+        fill: 'var(--bg-elev-2)',
+      });
+      diamond.appendChild(svgTitle(`${s.label}: paper-stated crossover 2^${c.paperStatedLog2} (full-ISD table)`));
+      svg.appendChild(diamond);
     }
   }
 
@@ -208,6 +236,20 @@ function renderReadout(D: number): void {
   }
 }
 
+/* ============================== chart legend (static) */
+function renderLegend(): void {
+  const host = $('#chart-legend');
+  const schemes = SCHEMES.map(
+    (s) => `<span class="lg-item"><span class="swatch" style="background:${schemeColor(s.id)}"></span>${s.label}</span>`,
+  ).join('');
+  host.innerHTML = `
+    <div class="lg-row">${schemes}</div>
+    <div class="lg-row lg-marks">
+      <span class="lg-item"><span class="lg-dot"></span>modeled crossover <span class="muted">(idealized √D law)</span></span>
+      <span class="lg-item"><span class="lg-diamond"></span>paper crossover <span class="muted">(full-ISD table)</span></span>
+    </div>`;
+}
+
 /* ============================== screen-reader chart description (live) */
 function describeForSR(D: number, log2d: number): void {
   const parts = SCHEMES.map((s) => {
@@ -243,30 +285,39 @@ function renderSyndromeCards(D: number): void {
   }
 }
 
+/** Render a duration in days as a human cadence ("every ~18 hours"). */
+function cadence(days: number): string {
+  if (!Number.isFinite(days) || days <= 0) return 'immediately';
+  if (days < 1 / 24) return `every ~${Math.max(1, Math.round(days * 24 * 60))} min`;
+  if (days < 1) return `every ~${Math.round(days * 24)} h`;
+  if (days < 60) return `every ~${days < 10 ? days.toFixed(1) : Math.round(days)} days`;
+  if (days < 730) return `every ~${Math.round(days / 30)} months`;
+  return `every ~${Math.round(days / 365)} years`;
+}
+
 /* ============================== rotation policy calculator */
 function renderOps(): void {
   const target = Math.max(1, Number(($('#target-input') as HTMLInputElement).value) || FLOOR);
+  const safetyMargin = Math.max(0, Number(($('#margin-input') as HTMLInputElement).value) || 0);
   const budget = Math.max(1, Math.floor(Number(($('#budget-input') as HTMLInputElement).value) || 1));
+  const rate = Math.max(1, Number(($('#rate-input') as HTMLInputElement).value) || 1);
+  const effectiveTarget = target + safetyMargin; // require target PLUS the buffer
 
-  // reflect the budget as a power of two for intuition
   $('#budget-pow').innerHTML = `≈ 2<sup>${fmt(Math.log2(budget), 1)}</sup> sessions.`;
 
   const body = $('#ops-body');
   body.replaceChildren();
   for (const s of SCHEMES) {
-    // max safe D for an arbitrary target: largest D with effective(D) >= target.
-    // effective(D) = T1 − ½·log2(D) ≥ target ⇔ D ≤ 2^(2·(T1−target)).
-    const exactLog2 = (s.singleInstanceBits - target) * 2;
-    const maxSafeLog2 = Math.floor(exactLog2); // largest integer log2(D) still safe
+    const maxSafeLog2 = maxSafeReuseLog2(s, effectiveTarget); // model-sourced
     const maxSafeD = maxSafeLog2 < 0 ? 0 : 2 ** maxSafeLog2;
     const safe = budget <= maxSafeD;
+    const rotateDays = maxSafeD / rate; // sessions-limit ÷ sessions-per-day
 
     const tr = document.createElement('tr');
     if (!safe) tr.className = 'is-below';
     const limitText =
-      maxSafeLog2 < 0
-        ? `already below at D = 1`
-        : `2^${maxSafeLog2} (≈ ${big(maxSafeD)})`;
+      maxSafeLog2 < 0 ? `already below at D = 1` : `2^${maxSafeLog2} (≈ ${big(maxSafeD)})`;
+    const cadenceText = maxSafeLog2 < 0 ? 'n/a' : cadence(rotateDays);
     tr.innerHTML = `
       <td data-label="Scheme">
         <span class="scheme-cell">
@@ -275,9 +326,35 @@ function renderOps(): void {
         </span>
       </td>
       <td data-label="Max safe D" class="num">${limitText}</td>
+      <td data-label="Rotate every" class="num">${cadenceText}</td>
       <td data-label="Your budget">
         <span class="pill ${safe ? 'safe' : 'danger'}">${safe ? 'WITHIN LIMIT' : 'ROTATE SOONER'}</span>
       </td>`;
+    body.appendChild(tr);
+  }
+}
+
+/* ============================== parameters & sources table (static) */
+function renderSources(): void {
+  const body = $('#src-body');
+  body.replaceChildren();
+  for (const s of SCHEMES) {
+    const c = crossoverD(s);
+    const growth = s.syndromeGrowth === 'nD' ? '≈ n · D' : '≈ D';
+    const paper = c.paperStatedLog2 === 'UNKNOWN' ? 'UNKNOWN' : `2^${c.paperStatedLog2}`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Scheme">
+        <span class="scheme-cell">
+          <span class="swatch" style="background:${schemeColor(s.id)}"></span>
+          ${s.label} <span class="muted small">${s.paramSet}</span>
+        </span>
+      </td>
+      <td data-label="T₁ (MMT)" class="num">${fmt(s.singleInstanceBits, 2)} bits</td>
+      <td data-label="Code length n" class="num">${s.codeLengthN.toLocaleString()}</td>
+      <td data-label="Syndromes / D" class="mono">${growth}</td>
+      <td data-label="Paper crossover" class="num">${paper}</td>
+      <td data-label="Source" class="small muted">${s.source}</td>`;
     body.appendChild(tr);
   }
 }
@@ -358,13 +435,25 @@ function init(): void {
   slider.max = String(MAX_LOG2D);
   slider.value = String(initialLog2D());
   initThemeToggle();
+  renderLegend();
+  renderSources();
   renderOps();
   renderCrossoverGap();
   update();
 
   slider.addEventListener('input', update);
-  $('#target-input').addEventListener('input', renderOps);
-  $('#budget-input').addEventListener('input', renderOps);
+  $('#show-paper').addEventListener('change', () => renderChart(Number(slider.value)));
+  for (const id of ['#target-input', '#margin-input', '#budget-input', '#rate-input']) {
+    $(id).addEventListener('input', renderOps);
+  }
+  // preset "jump to" buttons set the slider to a crossover and refresh
+  document.querySelectorAll<HTMLButtonElement>('.preset').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = Math.min(MAX_LOG2D, Math.max(0, Number(btn.dataset.log2)));
+      slider.value = String(target);
+      update();
+    });
+  });
 
   // keep the SVG crisp if the user resizes / rotates the device
   let raf = 0;

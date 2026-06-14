@@ -78,6 +78,13 @@
               D = <span id="d-value">1</span>
               <span class="muted">= 2<sup id="d-exp">0</sup></span>
             </p>
+            <div class="presets" role="group" aria-label="Jump to a crossover">
+              <span class="muted small">Jump to:</span>
+              <button type="button" class="preset" data-log2="0">single key</button>
+              <button type="button" class="preset" data-log2="11">BIKE 2¹¹</button>
+              <button type="button" class="preset" data-log2="21">McEliece 2²¹</button>
+              <button type="button" class="preset" data-log2="34">HQC 2³⁴</button>
+            </div>
           </div>
 
           <figure class="chart-wrap">
@@ -97,6 +104,16 @@
             </figcaption>
             <p id="chart-desc" class="visually-hidden" aria-live="polite"></p>
           </figure>
+
+          <div class="chart-controls">
+            <div id="chart-legend" class="chart-legend" aria-hidden="true">
+              <!-- injected by main.ts -->
+            </div>
+            <label class="toggle-line">
+              <input type="checkbox" id="show-paper" checked />
+              Show paper-stated crossovers (full-ISD table)
+            </label>
+          </div>
 
           <table class="readout" aria-label="Live security readout at the current D">
             <caption class="visually-hidden">
@@ -180,6 +197,19 @@
               <p class="muted small">Default = NIST Level-1 floor (143).</p>
             </div>
             <div class="control narrow">
+              <label for="margin-input">Safety margin above floor (bits)</label>
+              <input
+                type="number"
+                id="margin-input"
+                min="0"
+                max="64"
+                step="1"
+                value="0"
+                inputmode="numeric"
+              />
+              <p class="muted small">Extra head-room you require beyond the floor.</p>
+            </div>
+            <div class="control narrow">
               <label for="budget-input">Planned session keys per public key (D)</label>
               <input
                 type="number"
@@ -190,6 +220,18 @@
                 inputmode="numeric"
               />
               <p class="muted small" id="budget-pow">≈ 2<sup>20.0</sup> sessions.</p>
+            </div>
+            <div class="control narrow">
+              <label for="rate-input">Session rate (sessions per day)</label>
+              <input
+                type="number"
+                id="rate-input"
+                min="1"
+                step="1"
+                value="50000"
+                inputmode="numeric"
+              />
+              <p class="muted small">Used to turn a safe-D limit into a rotation cadence.</p>
             </div>
           </div>
 
@@ -203,6 +245,7 @@
               <tr>
                 <th scope="col">Scheme</th>
                 <th scope="col">Max safe D (rotate before)</th>
+                <th scope="col">Rotate at least every</th>
                 <th scope="col">Your budget vs. limit</th>
               </tr>
             </thead>
@@ -210,6 +253,35 @@
               <!-- injected by main.ts -->
             </tbody>
           </table>
+        </section>
+
+        <!-- =================== PARAMETERS & SOURCES =================== -->
+        <section class="card" aria-labelledby="src-h">
+          <h2 id="src-h">Parameters &amp; sources</h2>
+          <p class="lede">
+            Every number above traces to a published value. Here is each scheme's
+            inputs with its citation — chase any of them.
+          </p>
+          <details class="sources-details" open>
+            <summary>Show the sourced inputs (Level&nbsp;1)</summary>
+            <div class="table-scroll">
+              <table class="readout src-table" aria-label="Sourced parameters per scheme">
+                <thead>
+                  <tr>
+                    <th scope="col">Scheme</th>
+                    <th scope="col">Single-inst T₁ (MMT)</th>
+                    <th scope="col">Code length n</th>
+                    <th scope="col">Syndromes / D</th>
+                    <th scope="col">Paper crossover</th>
+                    <th scope="col">Source</th>
+                  </tr>
+                </thead>
+                <tbody id="src-body">
+                  <!-- injected by main.ts -->
+                </tbody>
+              </table>
+            </div>
+          </details>
         </section>
 
         <!-- ======================= KNOWN GAPS ======================= -->

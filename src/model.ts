@@ -221,6 +221,17 @@ export function crossoverD(scheme: SchemeParams): CrossoverResult {
 }
 
 /**
+ * Largest integer log2(D) at which a scheme still holds >= targetBits of
+ * effective security (i.e. the last "safe" reuse count before rotation).
+ *   effective(D) = T1 − ½·log2(D) ≥ target  ⇔  log2(D) ≤ 2·(T1 − target).
+ * May be negative, meaning even a single key (D=1) is already below target.
+ * source: same √D law as effectiveSecurityBits.
+ */
+export function maxSafeReuseLog2(scheme: SchemeParams, targetBits: number): number {
+  return Math.floor((scheme.singleInstanceBits - targetBits) * 2);
+}
+
+/**
  * A sensible upper bound for the D slider/chart: comfortably past every
  * scheme's crossover (computed and paper-stated). Derived, never hardcoded.
  */
