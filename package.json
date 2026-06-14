@@ -1,0 +1,19 @@
+{
+  "name": "crypto-lab-syndrome-drain",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Educational visualizer for the multi-instance security degradation of code-based KEMs (BIKE, HQC, Classic McEliece) — IACR ePrint 2026/517. Computes effective bit-security from published Level-1 parameters; runs no attack.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
+  }
+}

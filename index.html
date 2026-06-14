@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Syndrome Drain — an educational visualizer for the multi-instance security degradation of code-based KEMs (BIKE, HQC, Classic McEliece), IACR ePrint 2026/517. Computes effective bit-security from published NIST Level-1 parameters; it runs no attack."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <!-- Theme bootstrap: must run before any paint. Dark is the default when
+         localStorage is empty. We deliberately do NOT read prefers-color-scheme. -->
+    <script>
+      (function () {
+        const saved = localStorage.getItem('theme');
+        document.documentElement.setAttribute('data-theme', saved ?? 'dark');
+      })();
+    </script>
+    <title>Syndrome Drain — Multi-Instance Security Degradation of Code-Based KEMs</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#visualizer">Skip to the erosion visualizer</a>
+
+    <div class="page">
+      <!-- ============================ HEADER ============================ -->
+      <header class="site-header" role="banner">
+        <button
+          id="theme-toggle"
+          class="theme-toggle"
+          type="button"
+          style="position:absolute;top:0;right:0"
+          aria-label="Switch to light mode"
+        >
+          <span aria-hidden="true" id="theme-icon">🌙</span>
+        </button>
+
+        <p class="eyebrow">crypto-lab · code-based KEMs</p>
+        <h1>Syndrome Drain</h1>
+        <p class="subtitle">Multi-Instance Security Degradation of Code-Based KEMs</p>
+        <p class="framing">
+          This lab <strong>computes</strong> effective bit-security from published
+          NIST Level&nbsp;1 parameters and the formulas in
+          <a
+            href="https://eprint.iacr.org/2026/517"
+            target="_blank"
+            rel="noopener noreferrer"
+            >May&nbsp;&amp;&nbsp;Sá&nbsp;Diogo, ePrint&nbsp;2026/517</a
+          >. It runs <strong>no attack</strong> — no decoding, no DOOM, no random
+          numbers. Every figure below is real arithmetic you can audit.
+        </p>
+      </header>
+
+      <main id="main">
+        <!-- ======================= VISUALIZER ======================= -->
+        <section id="visualizer" class="card" aria-labelledby="viz-h">
+          <h2 id="viz-h">The erosion, as you reuse one public key</h2>
+          <p class="lede">
+            Drag <strong>D</strong> — the number of session keys derived from a
+            single public key — and watch effective security drain toward the
+            <span class="floor-word">143-bit Level&nbsp;1 floor</span>.
+          </p>
+
+          <div class="control">
+            <label for="d-slider" id="d-label">
+              D — session keys per public key
+            </label>
+            <input
+              type="range"
+              id="d-slider"
+              min="0"
+              max="40"
+              step="1"
+              value="0"
+              aria-describedby="d-readout"
+              aria-valuetext="2 to the power 0 = 1 session key"
+            />
+            <p id="d-readout" class="d-readout" aria-live="polite">
+              D = <span id="d-value">1</span>
+              <span class="muted">= 2<sup id="d-exp">0</sup></span>
+            </p>
+          </div>
+
+          <figure class="chart-wrap">
+            <div
+              id="chart"
+              class="chart"
+              role="img"
+              aria-labelledby="chart-cap"
+            >
+              <!-- SVG injected by main.ts -->
+            </div>
+            <figcaption id="chart-cap" class="chart-cap">
+              Effective classical security (bits) vs. log₂(D) for HQC-1, BIKE-1
+              and mceliece3488-64. The red line is the 143-bit Level-1 floor. A
+              full textual description of the current state is available to
+              screen readers below.
+            </figcaption>
+            <p id="chart-desc" class="visually-hidden" aria-live="polite"></p>
+          </figure>
+
+          <table class="readout" aria-label="Live security readout at the current D">
+            <caption class="visually-hidden">
+              Effective security, margin to the 143-bit floor, and status for
+              each scheme at the currently selected D.
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Scheme</th>
+                <th scope="col">Effective bits</th>
+                <th scope="col">Margin to floor</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody id="readout-body">
+              <!-- rows injected by main.ts -->
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ======================= MECHANISM ======================= -->
+        <section class="card" aria-labelledby="mech-h">
+          <h2 id="mech-h">Why it drains: the DOOM lever</h2>
+          <div class="prose">
+            <p>
+              All three KEMs rest on <strong>syndrome decoding</strong>: given a
+              parity-check matrix and a syndrome, find the low-weight error that
+              produces it. <em>Decoding One Out of Many</em> (DOOM, Sendrier)
+              says that if you hold <strong>M syndromes</strong> for the same
+              matrix, decoding <em>any one</em> of them costs about
+              <strong>√M less</strong> — a saving of ½·log₂(M) bits.
+            </p>
+            <p>
+              The quasi-cyclic ring
+              <code>F₂[X]/(Xⁿ − 1)</code> behind HQC and BIKE already hands an
+              attacker <strong>n</strong> syndromes from a single key (each cyclic
+              shift Xʲ is another instance). That √n saving was
+              <em>already spent</em> when these schemes' Level-1 parameters were
+              chosen. The new result asks a different question:
+              <strong>what happens when one public key is reused for D
+              sessions?</strong>
+            </p>
+          </div>
+
+          <ul class="syndrome-cards" id="syndrome-cards" aria-label="Syndromes harvested per scheme">
+            <!-- injected by main.ts: per-scheme syndrome-count expressions -->
+          </ul>
+
+          <p class="prose footnote">
+            BIKE re-harvests its whole ring every session (≈&nbsp;n·D), while
+            HQC's reduction blocks the ring (≈&nbsp;D) and Classic McEliece has no
+            ring at all (≈&nbsp;D). Because <strong>n is a constant</strong>, that
+            richer harvest is a fixed head-start already folded into BIKE's
+            single-instance number — so all three lose ½ bit per
+            <em>doubling</em> of D, and the scheme that starts with the thinnest
+            margin (BIKE) hits the floor first.
+          </p>
+        </section>
+
+        <!-- =================== ROTATION CALCULATOR =================== -->
+        <section class="card" aria-labelledby="ops-h">
+          <h2 id="ops-h">Key-rotation policy calculator</h2>
+          <p class="lede">
+            The operational takeaway: rotate public keys on a schedule tied to
+            session volume. Set a security target and a per-key session budget;
+            this tells you how much head-room each scheme has.
+          </p>
+
+          <div class="ops-controls">
+            <div class="control narrow">
+              <label for="target-input">Target security floor (bits)</label>
+              <input
+                type="number"
+                id="target-input"
+                min="1"
+                max="256"
+                step="1"
+                value="143"
+                inputmode="numeric"
+              />
+              <p class="muted small">Default = NIST Level-1 floor (143).</p>
+            </div>
+            <div class="control narrow">
+              <label for="budget-input">Planned session keys per public key (D)</label>
+              <input
+                type="number"
+                id="budget-input"
+                min="1"
+                step="1"
+                value="1000000"
+                inputmode="numeric"
+              />
+              <p class="muted small" id="budget-pow">≈ 2<sup>20.0</sup> sessions.</p>
+            </div>
+          </div>
+
+          <table class="readout ops-table" aria-label="Maximum safe reuse before rotation">
+            <caption class="visually-hidden">
+              For each scheme: the maximum number of session keys before
+              effective security drops below the target, and whether the planned
+              budget stays safe.
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Scheme</th>
+                <th scope="col">Max safe D (rotate before)</th>
+                <th scope="col">Your budget vs. limit</th>
+              </tr>
+            </thead>
+            <tbody id="ops-body">
+              <!-- injected by main.ts -->
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ======================= KNOWN GAPS ======================= -->
+        <section class="card gaps" aria-labelledby="gaps-h">
+          <h2 id="gaps-h">Known gaps &amp; honest caveats</h2>
+          <ul class="prose">
+            <li>
+              This is <strong>asymptotic multi-instance degradation</strong>, not
+              a break of syndrome decoding. Per-instance hardness is intact; the
+              schemes remain sound when public keys are rotated.
+            </li>
+            <li>
+              Numbers are <strong>computed</strong> from published Level-1
+              parameters and the paper's √D law. The demo runs
+              <strong>no decoding and no DOOM</strong>.
+            </li>
+            <li>v1 covers <strong>NIST Level 1 only</strong> (HQC-1, BIKE-1, mceliece3488-64).</li>
+            <li id="gap-crossover">
+              <!-- injected by main.ts: computed-vs-paper crossover discrepancies -->
+            </li>
+            <li>
+              No values are currently marked UNKNOWN for the Level-1 model. The
+              DS (Dumer–Stern) single-instance figures are not displayed; MMT —
+              the attacker's best variant — drives every number shown.
+            </li>
+          </ul>
+        </section>
+      </main>
+
+      <!-- ======================= SCRIPTURE FOOTER ======================= -->
+      <footer class="site-footer" role="contentinfo">
+        <blockquote class="scripture">
+          <p>
+            “For nothing is secret, that shall not be made manifest; neither any
+            thing hid, that shall not be known and come abroad.”
+          </p>
+          <cite>— Luke 8:17 (KJV)</cite>
+        </blockquote>
+        <p class="colophon">
+          Built as an educational crypto-lab. Math sourced from
+          <a
+            href="https://eprint.iacr.org/2026/517"
+            target="_blank"
+            rel="noopener noreferrer"
+            >IACR ePrint 2026/517</a
+          >. No warranties; verify before relying.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
