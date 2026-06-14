@@ -55,7 +55,7 @@
         <section class="card tldr" aria-labelledby="tldr-h">
           <p class="eyebrow">TL;DR — read this first</p>
           <h2 id="tldr-h" class="tldr-h">
-            Reusing one public key slowly drains its security
+            A reused public key quietly loses security — no attack required
           </h2>
           <p class="tldr-pitch">
             Code-based KEMs (BIKE, HQC, Classic McEliece) rest on the hardness of
@@ -148,11 +148,14 @@
             </div>
           </div>
 
+          <!-- Not an aria-live region on purpose: #chart-desc already announces
+               the live state, so the slider triggers one announcement, not three.
+               Screen-reader users still read this meter when navigating to it. -->
           <div
             id="level-meter"
             class="level-meter"
-            aria-live="polite"
-            aria-label="Live security-level meter at the current D"
+            role="group"
+            aria-label="Security-level meter at the current D"
           >
             <!-- injected by main.ts -->
           </div>

@@ -296,8 +296,13 @@ function renderLevelMeter(D: number, log2d: number): void {
 
   host.innerHTML = `
     <p class="lm-head">
-      <span class="muted small">At D = 2<sup>${log2d}</sup>:</span>
-      <strong>${headline}</strong>
+      <span class="lm-live">● live</span>
+      <span class="lm-head-text">
+        At the slider's current setting —
+        <strong class="lm-d">D = 2<sup>${log2d}</sup></strong>
+        <span class="muted small">(${big(D)} session${D === 1 ? '' : 's'} per key)</span>
+        — ${headline}
+      </span>
     </p>
     <ul class="lm-list">${rows}</ul>`;
 }

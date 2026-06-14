@@ -18,6 +18,9 @@
   --accent-2: #3fb950; /* HQC */
   --accent-3: #d2a8ff; /* McEliece */
   --accent-soft: rgba(88, 166, 255, 0.14);
+  /* readable ink on an --accent fill. Accent is LIGHT in dark mode, so ink is
+     dark here; it flips to white in light mode. Keeps badges/skip-link AA. */
+  --on-accent: #08111f;
 
   --danger: #ff6b6b; /* the floor line + below-floor state */
   --danger-soft: rgba(255, 107, 107, 0.13);
@@ -51,6 +54,7 @@
   --accent-2: #1a7f37;
   --accent-3: #8250df;
   --accent-soft: rgba(9, 105, 218, 0.1);
+  --on-accent: #ffffff; /* accent is dark in light mode → white ink reads AA */
 
   --danger: #cf222e;
   --danger-soft: rgba(207, 34, 46, 0.09);
@@ -108,7 +112,7 @@ a:hover {
   left: 8px;
   top: -100px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   padding: 0.6rem 1rem;
   border-radius: var(--radius-sm);
   z-index: 100;
@@ -206,8 +210,9 @@ h1 {
   background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: clamp(1.1rem, 4vw, 2rem);
-  margin: 1.25rem 0;
+  padding: clamp(1.2rem, 4.5vw, 2.1rem);
+  margin: 1.75rem 0;
+  scroll-margin-top: 1rem; /* so #ops-h jumps don't tuck the heading at the edge */
   box-shadow: var(--shadow);
 }
 
@@ -231,7 +236,7 @@ h2 {
   max-width: 68ch;
 }
 .prose p {
-  margin: 0 0 0.9rem;
+  margin: 0 0 1.05rem;
 }
 .prose strong {
   color: var(--text);
@@ -717,11 +722,38 @@ tr.is-below td {
   margin: 0 0 1.25rem;
   padding: 0.9rem 1rem;
   border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
   border-radius: var(--radius-sm);
   background: var(--bg-elev-2);
 }
 .lm-head {
-  margin: 0 0 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0 0 0.8rem;
+}
+.lm-live {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+.lm-live::first-letter {
+  /* the bullet — give it a gentle pulse to read as "live" */
+  animation: lm-pulse 2s ease-in-out infinite;
+}
+@keyframes lm-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.lm-head-text {
+  flex: 1 1 16rem;
+}
+.lm-d {
+  color: var(--text);
+  white-space: nowrap;
 }
 .lm-list {
   list-style: none;
@@ -824,7 +856,7 @@ tr.is-below td {
 }
 .src-model {
   background: var(--accent);
-  color: #08111f;
+  color: var(--on-accent);
 }
 
 /* ===================== scenario presets ===================== */
@@ -840,21 +872,45 @@ tr.is-below td {
 .faq {
   margin: 0;
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
 }
 .faq-item {
   border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
   border-radius: var(--radius-sm);
-  padding: 0.9rem 1.1rem;
+  padding: 1rem 1.2rem 1.1rem;
   background: var(--bg-elev-2);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.faq-item:hover {
+  border-color: var(--accent);
+  transform: translateX(2px);
 }
 .faq dt {
+  display: flex;
+  gap: 0.55rem;
+  align-items: baseline;
   font-weight: 700;
-  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  margin: 0 0 0.55rem;
   color: var(--text);
+  letter-spacing: -0.01em;
+}
+.faq dt::before {
+  content: 'Q';
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 99px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.8rem;
+  font-weight: 800;
 }
 .faq dd {
-  margin: 0;
+  margin: 0 0 0 2.05rem;
   color: var(--text-muted);
   max-width: 72ch;
 }
@@ -893,11 +949,14 @@ tr.is-below td {
     grid-template-columns: 1fr;
   }
   .lm-item {
-    grid-template-columns: 7rem 1fr;
+    /* name flexes (so "Classic McEliece" fits), band sizes to its text,
+       and the bar spans the full width on its own row */
+    grid-template-columns: 1fr auto;
     grid-template-areas:
       'name band'
       'track track';
-    row-gap: 0.3rem;
+    row-gap: 0.35rem;
+    column-gap: 0.6rem;
   }
   .lm-name {
     grid-area: name;
@@ -907,6 +966,34 @@ tr.is-below td {
   }
   .lm-track {
     grid-area: track;
+    height: 14px;
+  }
+  /* give dense blocks more room on small screens */
+  .level-meter {
+    padding: 0.8rem 0.75rem;
+  }
+  .faq-item {
+    padding: 0.85rem 0.95rem 0.95rem;
+  }
+  .faq dt {
+    font-size: 1rem;
+  }
+  .faq dd {
+    margin-left: 0; /* reclaim width — the Q badge already labels it */
+  }
+  /* 44px-tall buttons = comfortable WCAG 2.5.8 thumb targets */
+  .preset {
+    min-height: 44px;
+  }
+  /* scenario labels are long → give them the full row */
+  .scenario-presets .preset {
+    flex: 1 1 100%;
+    text-align: center;
+  }
+  /* let the chart use the full card width on phones */
+  .chart-wrap {
+    margin-left: -0.3rem;
+    margin-right: -0.3rem;
   }
   /* stack the readout tables into cards on narrow screens */
   .readout thead {
