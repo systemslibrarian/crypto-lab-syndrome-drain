@@ -658,6 +658,228 @@ tr.is-below td {
   max-width: 56ch;
 }
 
+/* ============================ TL;DR card ============================ */
+.tldr {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, var(--accent-soft), transparent 120px),
+    var(--bg-elev);
+}
+.tldr .eyebrow {
+  color: var(--accent);
+}
+.tldr-h {
+  margin-top: 0.2rem;
+}
+.tldr-pitch {
+  color: var(--text);
+  max-width: 72ch;
+  margin: 0 0 1.4rem;
+}
+.tldr-pitch strong {
+  color: var(--text);
+}
+.tldr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.tldr-col {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.1rem;
+  background: var(--bg-elev-2);
+}
+.tldr-risk {
+  border-left: 3px solid var(--warn);
+}
+.tldr-safe {
+  border-left: 3px solid var(--safe);
+}
+.tldr-col-h {
+  font-weight: 700;
+  margin: 0 0 0.6rem;
+  letter-spacing: -0.01em;
+}
+.prose.tight {
+  max-width: none;
+}
+.prose.tight li {
+  margin-bottom: 0.5rem;
+}
+.prose.tight ul,
+.prose ul {
+  padding-left: 1.1rem;
+  margin: 0;
+}
+
+/* ===================== live security-level meter ===================== */
+.level-meter {
+  margin: 0 0 1.25rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev-2);
+}
+.lm-head {
+  margin: 0 0 0.7rem;
+}
+.lm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.lm-item {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr 8.5rem;
+  align-items: center;
+  gap: 0.7rem;
+}
+.lm-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.lm-track {
+  position: relative;
+  height: 12px;
+  border-radius: 99px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.lm-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 99px;
+  transition: width 0.15s ease;
+}
+.lm-floor {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--danger);
+  transform: translateX(-1px);
+}
+.lm-band {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+.lm-safe .lm-fill {
+  background: var(--safe);
+}
+.lm-safe .lm-band {
+  color: var(--safe);
+}
+.lm-warn .lm-fill {
+  background: var(--warn);
+}
+.lm-warn .lm-band {
+  color: var(--warn);
+}
+.lm-danger .lm-fill,
+.lm-crit .lm-fill {
+  background: var(--danger);
+}
+.lm-danger .lm-band,
+.lm-crit .lm-band {
+  color: var(--danger);
+}
+.lm-crit .lm-band {
+  text-decoration: underline;
+}
+
+/* =================== model/paper source notes =================== */
+.source-note {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  border-left: 3px solid var(--accent);
+  padding: 0.55rem 0 0.55rem 0.9rem;
+  background: var(--accent-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  max-width: 74ch;
+}
+.source-note code {
+  color: var(--text);
+}
+.src-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 99px;
+  margin-right: 0.45rem;
+  vertical-align: 0.05em;
+}
+.src-model {
+  background: var(--accent);
+  color: #08111f;
+}
+
+/* ===================== scenario presets ===================== */
+.scenario-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0 1.25rem;
+}
+
+/* ===================== misconceptions FAQ ===================== */
+.faq {
+  margin: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+.faq-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem;
+  background: var(--bg-elev-2);
+}
+.faq dt {
+  font-weight: 700;
+  margin: 0 0 0.4rem;
+  color: var(--text);
+}
+.faq dd {
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 72ch;
+}
+.faq dd code,
+.faq dd strong {
+  color: var(--text);
+}
+
+/* ===================== verify-yourself block ===================== */
+.verify-block {
+  margin-top: 1rem;
+}
+.formula {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.9rem;
+  overflow-x: auto;
+  margin: 0.4rem 0 0.9rem;
+}
+.formula code {
+  color: var(--accent-2);
+  font-size: 0.95em;
+}
+
 /* ============================ responsive ============================ */
 @media (max-width: 680px) {
   body {
@@ -666,6 +888,25 @@ tr.is-below td {
   .ops-controls,
   .syndrome-cards {
     grid-template-columns: 1fr;
+  }
+  .tldr-grid {
+    grid-template-columns: 1fr;
+  }
+  .lm-item {
+    grid-template-columns: 7rem 1fr;
+    grid-template-areas:
+      'name band'
+      'track track';
+    row-gap: 0.3rem;
+  }
+  .lm-name {
+    grid-area: name;
+  }
+  .lm-band {
+    grid-area: band;
+  }
+  .lm-track {
+    grid-area: track;
   }
   /* stack the readout tables into cards on narrow screens */
   .readout thead {

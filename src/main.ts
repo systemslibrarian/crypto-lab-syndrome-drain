@@ -250,6 +250,58 @@ function renderLegend(): void {
     </div>`;
 }
 
+/* ============================== live security-level meter (intuitive layer) */
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+
+/** Qualitative band for a margin (bits) above the floor — labels, not numbers. */
+function levelBand(margin: number): { label: string; cls: string } {
+  if (margin >= 8) return { label: 'Comfortable', cls: 'lm-safe' };
+  if (margin >= 0) return { label: 'Thin margin', cls: 'lm-warn' };
+  if (margin >= -8) return { label: 'Below floor', cls: 'lm-danger' };
+  return { label: 'Dangerously low', cls: 'lm-crit' };
+}
+
+/**
+ * A compact, intuitive meter that mirrors the chart in words: one bar per
+ * scheme, colored by how far it sits from the 143-bit floor. The exact numbers
+ * live in the readout table; this layer is the "is it OK?" glance.
+ */
+function renderLevelMeter(D: number, log2d: number): void {
+  const host = $('#level-meter');
+  const floorFrac = clamp01((FLOOR - Y_MIN) / (Y_MAX - Y_MIN));
+
+  const belowCount = SCHEMES.filter((s) => isBelowFloor(s, D)).length;
+  const headline =
+    belowCount === 0
+      ? `All three schemes stay above the ${FLOOR}-bit floor.`
+      : `${belowCount} of 3 schemes ${belowCount === 1 ? 'has' : 'have'} dropped below the ${FLOOR}-bit floor.`;
+
+  const rows = SCHEMES.map((s) => {
+    const bits = effectiveSecurityBits(s, D);
+    const margin = marginToFloor(s, D);
+    const band = levelBand(margin);
+    const fillFrac = clamp01((bits - Y_MIN) / (Y_MAX - Y_MIN));
+    return `
+      <li class="lm-item ${band.cls}">
+        <span class="lm-name">
+          <span class="swatch" style="background:${schemeColor(s.id)}"></span>${s.label}
+        </span>
+        <span class="lm-track" role="presentation">
+          <span class="lm-fill" style="width:${(fillFrac * 100).toFixed(1)}%"></span>
+          <span class="lm-floor" style="left:${(floorFrac * 100).toFixed(1)}%"></span>
+        </span>
+        <span class="lm-band">${band.label}</span>
+      </li>`;
+  }).join('');
+
+  host.innerHTML = `
+    <p class="lm-head">
+      <span class="muted small">At D = 2<sup>${log2d}</sup>:</span>
+      <strong>${headline}</strong>
+    </p>
+    <ul class="lm-list">${rows}</ul>`;
+}
+
 /* ============================== screen-reader chart description (live) */
 function describeForSR(D: number, log2d: number): void {
   const parts = SCHEMES.map((s) => {
@@ -412,6 +464,7 @@ function update(): void {
   );
 
   renderChart(log2d);
+  renderLevelMeter(D, log2d);
   renderReadout(D);
   renderSyndromeCards(D);
   describeForSR(D, log2d);
@@ -447,11 +500,22 @@ function init(): void {
     $(id).addEventListener('input', renderOps);
   }
   // preset "jump to" buttons set the slider to a crossover and refresh
-  document.querySelectorAll<HTMLButtonElement>('.preset').forEach((btn) => {
+  document.querySelectorAll<HTMLButtonElement>('.preset[data-log2]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const target = Math.min(MAX_LOG2D, Math.max(0, Number(btn.dataset.log2)));
       slider.value = String(target);
       update();
+    });
+  });
+
+  // rotation scenario buttons: set a realistic session rate (and a one-year
+  // budget at that rate) so the calculator answers a concrete "what if".
+  document.querySelectorAll<HTMLButtonElement>('.scenario[data-rate]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const rate = Math.max(1, Number(btn.dataset.rate) || 1);
+      ($('#rate-input') as HTMLInputElement).value = String(rate);
+      ($('#budget-input') as HTMLInputElement).value = String(rate * 365);
+      renderOps();
     });
   });
 

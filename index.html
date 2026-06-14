@@ -51,6 +51,67 @@
       </header>
 
       <main id="main">
+        <!-- ===================== TL;DR / WHY ===================== -->
+        <section class="card tldr" aria-labelledby="tldr-h">
+          <p class="eyebrow">TL;DR — read this first</p>
+          <h2 id="tldr-h" class="tldr-h">
+            Reusing one public key slowly drains its security
+          </h2>
+          <p class="tldr-pitch">
+            Code-based KEMs (BIKE, HQC, Classic McEliece) rest on the hardness of
+            <strong>syndrome decoding</strong>. Each time you reuse <em>one</em>
+            public key for another session, an attacker collects another syndrome
+            — and decoding <em>one out of many</em> gets cheaper. Reuse a key for
+            <strong>D</strong> sessions and its effective security falls by about
+            <strong>½·log₂(D)</strong> bits. <strong>Single-session security is
+            untouched</strong>; the fix is simply to rotate keys on a schedule
+            tied to traffic.
+          </p>
+
+          <div class="tldr-grid">
+            <div class="tldr-col tldr-risk">
+              <p class="tldr-col-h">Who's tempted to reuse one key</p>
+              <ul class="prose tight">
+                <li>
+                  <strong>Firmware / IoT</strong> — a KEM key burned into a device
+                  and used for years without rotation.
+                </li>
+                <li>
+                  <strong>Cached server keys</strong> — one TLS/HPKE key reused
+                  across millions of handshakes between rotations.
+                </li>
+                <li>
+                  <strong>Published prekeys</strong> — a static messaging prekey
+                  senders reuse until it is replenished.
+                </li>
+                <li>
+                  <strong>One key over a big archive</strong> — a whole backup
+                  corpus encrypted to a single long-term recipient key.
+                </li>
+              </ul>
+            </div>
+            <div class="tldr-col tldr-safe">
+              <p class="tldr-col-h">The safer pattern</p>
+              <ul class="prose tight">
+                <li>
+                  Prefer <strong>ephemeral keys</strong> — a fresh keypair per
+                  session. Then D&nbsp;=&nbsp;1 and there is nothing to drain.
+                </li>
+                <li>
+                  If a static key is unavoidable,
+                  <strong>rotate on session volume</strong>, not just the calendar
+                  — the <a href="#ops-h">calculator below</a> turns your traffic
+                  rate into a cadence.
+                </li>
+                <li>
+                  Keep a <strong>bit-margin above the floor</strong> to absorb
+                  rounding and the model-vs-paper gap.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
         <!-- ======================= VISUALIZER ======================= -->
         <section id="visualizer" class="card" aria-labelledby="viz-h">
           <h2 id="viz-h">The erosion, as you reuse one public key</h2>
@@ -85,6 +146,15 @@
               <button type="button" class="preset" data-log2="21">McEliece 2²¹</button>
               <button type="button" class="preset" data-log2="34">HQC 2³⁴</button>
             </div>
+          </div>
+
+          <div
+            id="level-meter"
+            class="level-meter"
+            aria-live="polite"
+            aria-label="Live security-level meter at the current D"
+          >
+            <!-- injected by main.ts -->
           </div>
 
           <figure class="chart-wrap">
@@ -132,6 +202,16 @@
               <!-- rows injected by main.ts -->
             </tbody>
           </table>
+
+          <p class="source-note">
+            <span class="src-badge src-model">idealized √D model</span>
+            These effective-bit and margin numbers come from the simplified law
+            <code>T₁ − ½·log₂(D)</code> — <strong>not</strong> the paper's
+            full-ISD tables. On the chart, the filled dot ● marks this model's
+            crossover and the hollow diamond ◇ marks the paper's. For Classic
+            McEliece the two visibly differ; trust the
+            <strong>earlier (more conservative)</strong> of the two.
+          </p>
         </section>
 
         <!-- ======================= MECHANISM ======================= -->
@@ -235,6 +315,20 @@
             </div>
           </div>
 
+          <div class="scenario-presets" role="group" aria-label="Realistic traffic scenarios">
+            <span class="muted small">Try a realistic scenario:</span>
+            <button type="button" class="preset scenario" data-rate="1000">
+              Small/IoT — 1k/day
+            </button>
+            <button type="button" class="preset scenario" data-rate="100000">
+              Mid service — 100k/day
+            </button>
+            <button type="button" class="preset scenario" data-rate="5000000">
+              Large API — 5M/day
+            </button>
+            <span class="muted small">(sets the budget to one year at that rate)</span>
+          </div>
+
           <table class="readout ops-table" aria-label="Maximum safe reuse before rotation">
             <caption class="visually-hidden">
               For each scheme: the maximum number of session keys before
@@ -253,6 +347,15 @@
               <!-- injected by main.ts -->
             </tbody>
           </table>
+
+          <p class="source-note">
+            <span class="src-badge src-model">idealized √D model</span>
+            "Max safe D" is computed from the same simplified √D law as the chart.
+            Where the paper's full-ISD crossover sits <em>higher</em> (Classic
+            McEliece: paper 2²¹ vs the model's ≈2¹⁷), the model is the
+            <strong>more conservative</strong> bound — it tells you to rotate
+            sooner, which is the safe direction to err.
+          </p>
         </section>
 
         <!-- =================== PARAMETERS & SOURCES =================== -->
@@ -282,6 +385,97 @@
               </table>
             </div>
           </details>
+
+          <details class="sources-details verify-block">
+            <summary>How to verify this yourself</summary>
+            <div class="prose">
+              <p>
+                Every curve is one line of arithmetic. Effective classical
+                security at reuse count <code>D</code> is:
+              </p>
+              <pre class="formula"><code>effective_bits(D) = T1 - 0.5 * log2(D)</code></pre>
+              <p>
+                Plug in each scheme's published single-instance MMT complexity
+                <code>T₁</code> (HQC-1 = 160.04, BIKE-1 = 148.17,
+                mceliece3488-64 = 151.22) and the NIST Level-1 floor of 143 bits.
+                The crossover is where it hits the floor:
+              </p>
+              <pre class="formula"><code>crossover_log2D = 2 * (T1 - 143)</code></pre>
+              <p>
+                That gives BIKE ≈ 2¹¹, McEliece ≈ 2¹⁷ (model) and HQC ≈ 2³⁴.
+                Cross-check against the paper's full-ISD tables (Abstract and
+                Tables 2 / 5 / 7), which state 2¹¹, 2²¹ and 2³⁴ respectively — the
+                McEliece gap is the model-vs-reality slope difference, flagged
+                throughout. Sources:
+                <a href="https://eprint.iacr.org/2026/517" target="_blank" rel="noopener noreferrer">ePrint&nbsp;2026/517</a>
+                (the √M / DOOM law is §2 and Figs&nbsp;2–5; the per-scheme tables
+                are §3.1, §4.1, §5.1), and the pure implementation in
+                <code>src/model.ts</code>.
+              </p>
+            </div>
+          </details>
+        </section>
+
+        <!-- =================== MISCONCEPTIONS =================== -->
+        <section class="card" aria-labelledby="myth-h">
+          <h2 id="myth-h">Common misconceptions</h2>
+          <p class="lede">
+            The fast version of this result is easy to over- or under-read. Five
+            quick clarifications.
+          </p>
+          <dl class="faq">
+            <div class="faq-item">
+              <dt>“Doesn't this mean the KEM is broken?”</dt>
+              <dd>
+                No. <strong>Per-instance</strong> syndrome decoding is exactly as
+                hard as before — nothing here breaks the underlying problem. This
+                is <em>multi-instance amortization</em>: it only shows up when one
+                key is reused for many sessions, and rotating the key restores the
+                full security level.
+              </dd>
+            </div>
+            <div class="faq-item">
+              <dt>“Is single-session security still fine?”</dt>
+              <dd>
+                Yes. At <code>D = 1</code> the effective security equals the full
+                single-instance value <code>T₁</code>. The drain needs
+                <strong>many</strong> sessions derived from the
+                <strong>same</strong> public key; a key used once loses nothing.
+              </dd>
+            </div>
+            <div class="faq-item">
+              <dt>“Why isn't this as bad for Kyber / ML-KEM?”</dt>
+              <dd>
+                Lattice-based KEMs like ML-KEM are <strong>not vulnerable to this
+                specific form of security degradation</strong>. The DOOM attack
+                relies on collecting many <em>syndromes</em> for the same key
+                under a code-based scheme; lattice KEMs have a different
+                mathematical structure, so this particular attack path does not
+                apply. That said, lattice schemes have their own multi-target
+                analyses in the literature — they are simply different in
+                character from DOOM-style syndrome-decoding attacks.
+              </dd>
+            </div>
+            <div class="faq-item">
+              <dt>“So I should never reuse a public key?”</dt>
+              <dd>
+                Reuse is fine <em>up to a budget</em>. The point isn't “never
+                reuse” — it's “bound D and rotate before the floor.” The
+                <a href="#ops-h">rotation calculator</a> turns your traffic into a
+                concrete safe budget and cadence.
+              </dd>
+            </div>
+            <div class="faq-item">
+              <dt>“Is the √D line the real security?”</dt>
+              <dd>
+                It's an <strong>idealized model</strong> (slope exactly ½). The
+                paper's full-ISD numbers differ — most visibly for Classic
+                McEliece, whose real ISD slope (≈0.39) is shallower. The chart
+                plots <strong>both</strong> crossovers so you never have to trust
+                one blindly; when they disagree, prefer the more conservative.
+              </dd>
+            </div>
+          </dl>
         </section>
 
         <!-- ======================= KNOWN GAPS ======================= -->
