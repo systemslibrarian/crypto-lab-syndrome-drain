@@ -12,7 +12,9 @@
   --border: #2a3441;
   --text: #e6edf3;
   --text-muted: #9aa7b4;
-  --text-dim: #6e7d8c;
+  /* dim text must clear 4.5:1 on every surface it lands on — including the
+     tinted danger row (#34252b / #4e2e33). #96a2b0 keeps >=4.59 everywhere. */
+  --text-dim: #96a2b0;
 
   --accent: #58a6ff; /* BIKE / primary accent */
   --accent-2: #3fb950; /* HQC */
@@ -22,9 +24,16 @@
      dark here; it flips to white in light mode. Keeps badges/skip-link AA. */
   --on-accent: #08111f;
 
-  --danger: #ff6b6b; /* the floor line + below-floor state */
+  --danger: #ff6b6b; /* the floor line + below-floor state (borders/lines) */
+  /* a darker danger fill for white text (the bright #ff6b6b fails white at
+     2.8:1); white on #cf3a3a is 4.86:1. Used by solid danger chips. */
+  --danger-fill: #cf3a3a;
+  /* danger text sitting on the tinted below-floor row (#4e2e33): the bright
+     hue is only 4.3:1 there, so lift it for status pills. */
+  --danger-ink: #ff9494;
   --danger-soft: rgba(255, 107, 107, 0.13);
   --safe: #3fb950;
+  --safe-ink: #3fb950; /* already AA on the dark safe-soft tint */
   --safe-soft: rgba(63, 185, 80, 0.13);
   --warn: #e3b341;
 
@@ -48,7 +57,9 @@
   --border: #d4dbe3;
   --text: #11181f;
   --text-muted: #4b5663;
-  --text-dim: #6b7681;
+  /* #556069 clears 4.5:1 on every light surface, incl. the tinted danger row
+     (#fbebec / #f7d9db) where #6b7681 was only ~4.0-4.3:1. */
+  --text-dim: #556069;
 
   --accent: #0969da;
   --accent-2: #1a7f37;
@@ -57,8 +68,14 @@
   --on-accent: #ffffff; /* accent is dark in light mode → white ink reads AA */
 
   --danger: #cf222e;
+  --danger-fill: #cf222e; /* white on this is 5.4:1 — already AA in light */
+  /* danger text on the light below-floor tint (#f7d9db): #cf222e is 4.06:1
+     there, so darken to #b3141f (5.24:1) for the status pills. */
+  --danger-ink: #b3141f;
   --danger-soft: rgba(207, 34, 46, 0.09);
   --safe: #1a7f37;
+  /* #1a7f37 is only 4.43:1 on the safe tint (#e8f2eb); #137031 is 5.41:1. */
+  --safe-ink: #137031;
   --safe-soft: rgba(26, 127, 55, 0.1);
   --warn: #9a6700;
 
@@ -72,11 +89,14 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* own background-color (longhand) so the root surface matches the theme even
+     before body paints — keeps axe's page-background resolution stable. */
+  background-color: var(--bg);
 }
 
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
     Arial, system-ui, sans-serif;
@@ -596,11 +616,11 @@ input[type='number']:focus {
   white-space: nowrap;
 }
 .pill.safe {
-  color: var(--safe);
+  color: var(--safe-ink);
   background: var(--safe-soft);
 }
 .pill.danger {
-  color: var(--danger);
+  color: var(--danger-ink);
   background: var(--danger-soft);
 }
 tr.is-below td {
@@ -740,7 +760,7 @@ tr.is-below td {
   margin-right: 0.5rem;
   padding: 0.08rem 0.5rem;
   border-radius: 99px;
-  background: var(--danger);
+  background: var(--danger-fill);
   color: #fff;
   font-size: 0.7rem;
   font-weight: 800;
@@ -855,7 +875,7 @@ tr.is-below td {
   background: var(--danger-soft);
 }
 .lm-crit .lm-banner-icon {
-  background: var(--danger);
+  background: var(--danger-fill);
   color: #fff;
 }
 .lm-crit .lm-banner-status {

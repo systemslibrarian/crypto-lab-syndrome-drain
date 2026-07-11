@@ -5,3 +5,8 @@ dist-ssr
 .DS_Store
 paper.txt
 .vite
+
+# Playwright a11y gate artifacts
+/test-results/
+/playwright-report/
+/.pw-browsers/
