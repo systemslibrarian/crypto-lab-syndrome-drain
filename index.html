@@ -140,7 +140,9 @@
 
     <div class="page">
       <!-- ============================ HEADER ============================ -->
-      <header class="site-header" role="banner">
+      <header class="cl-hero site-header" role="banner">
+        <!-- Kept in the DOM (hidden by the shared topbar CSS) so the lab's own
+             theme JS in main.ts still binds; the topbar toggle drives theming. -->
         <button
           id="theme-toggle"
           class="theme-toggle"
@@ -151,20 +153,24 @@
           <span aria-hidden="true" id="theme-icon">🌙</span>
         </button>
 
-        <p class="eyebrow">crypto-lab · code-based KEMs</p>
-        <h1>Syndrome Drain</h1>
-        <p class="subtitle">Multi-Instance Security Degradation of Code-Based KEMs</p>
-        <p class="framing">
-          This lab <strong>computes</strong> effective bit-security from published
-          NIST Level&nbsp;1 parameters and the formulas in
-          <a
-            href="https://eprint.iacr.org/2026/517"
-            target="_blank"
-            rel="noopener noreferrer"
-            >May&nbsp;&amp;&nbsp;Sá&nbsp;Diogo, ePrint&nbsp;2026/517</a
-          >. It runs <strong>no attack</strong> — no decoding, no DOOM, no random
-          numbers. Every figure below is real arithmetic you can audit.
-        </p>
+        <div class="cl-hero-main">
+          <h1 class="cl-hero-title">Syndrome Drain</h1>
+          <p class="cl-hero-sub">Code-based KEMs · DOOM · IACR ePrint 2026/517</p>
+          <p class="cl-hero-desc">
+            Drag the reuse count D and watch each KEM's effective bit-security
+            drain toward the 143-bit NIST Level-1 floor — computed live from
+            published Level-1 parameters, with no attack run.
+          </p>
+        </div>
+        <aside class="cl-hero-why" aria-label="Why it matters">
+          <span class="cl-hero-why-label">WHY IT MATTERS</span>
+          <p class="cl-hero-why-text">
+            Reusing one public key across many sessions never errors — handshakes
+            still succeed — yet the security you were certified at silently erodes.
+            Firmware, cached server keys and static prekeys can slip below Level 1
+            unnoticed unless you rotate on session volume.
+          </p>
+        </aside>
       </header>
 
       <main id="main">
