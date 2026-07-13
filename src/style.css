@@ -1103,13 +1103,257 @@ tr.is-below td {
   font-size: 0.95em;
 }
 
+/* ===================== inline glosses (jargon on first use) ===================== */
+abbr.gloss {
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: help;
+  /* dotted underline can read as a link; keep the ink at body color */
+  color: inherit;
+}
+
+/* ===================== STEP 2 — syndrome primer ===================== */
+.primer {
+  margin-top: 0.5rem;
+}
+.primer-intro {
+  max-width: 72ch;
+}
+.primer-sub {
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+}
+.primer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 1.25rem;
+  align-items: start;
+  margin: 1.25rem 0;
+}
+.primer-e,
+.primer-calc {
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.1rem;
+}
+.bit-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.bit {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'SF Mono', ui-monospace, Consolas, monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+.bit:hover {
+  border-color: var(--accent);
+}
+.bit:active {
+  transform: scale(0.94);
+}
+.bit.bit-on {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+.primer-weight {
+  margin: 0.75rem 0 0.5rem;
+}
+.primer-weight strong {
+  color: var(--text);
+}
+.primer-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.primer-matrix {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.3rem 0 0.8rem;
+}
+.pm-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pm-label {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  width: 3.2rem;
+  flex: none;
+}
+.pm-cells {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+.pm {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+/* a cell H covers but is clean (0): faint. Covered AND flipped (contributes to
+   the parity): highlighted. Not covered by this row: dimmed out. */
+.pm-off {
+  color: var(--text-dim);
+  opacity: 0.35;
+}
+.pm-cov {
+  color: var(--text-muted);
+  background: var(--bg);
+}
+.pm-hit {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+.pm-eq {
+  color: var(--text);
+  font-weight: 700;
+  margin-left: 0.3rem;
+}
+.primer-syndrome {
+  margin: 0.4rem 0 0;
+  font-weight: 600;
+}
+.syndrome-chip {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  margin: 0 0.3rem;
+}
+.primer-collision {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev-2);
+  padding: 1rem 1.2rem;
+  margin-top: 0.5rem;
+}
+.primer-collision .prose {
+  margin-bottom: 0.8rem;
+}
+.primer-collision .prose:last-child {
+  margin-bottom: 0;
+}
+.vec {
+  background: var(--bg);
+  padding: 0.12rem 0.4rem;
+  border-radius: 5px;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* ===================== STEP 3 — DOOM √M intuition ===================== */
+.doom-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin: 1.25rem 0 0;
+}
+.doom-viz {
+  width: 100%;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.doom-viz svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.doom-bg {
+  fill: var(--bg);
+}
+.doom-band {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+.doom-band-lbl {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.doom-dot {
+  fill: var(--text-dim);
+}
+.doom-dot-hit {
+  fill: var(--danger);
+  stroke: var(--bg-elev-2);
+  stroke-width: 1.5;
+}
+.doom-hit-lbl {
+  fill: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.doom-targets-label {
+  cursor: default;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+.doom-targets-label strong {
+  color: var(--accent);
+}
+.doom-facts {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.doom-facts li {
+  border-left: 3px solid var(--border);
+  padding-left: 0.9rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+.doom-facts strong {
+  color: var(--text);
+}
+.doom-tie {
+  border-left-color: var(--accent) !important;
+  background: var(--accent-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 0.6rem 0 0.6rem 0.9rem;
+}
+.doom-tie strong {
+  color: var(--accent);
+}
+
 /* ============================ responsive ============================ */
 @media (max-width: 680px) {
   body {
     font-size: 16px;
   }
   .ops-controls,
-  .syndrome-cards {
+  .syndrome-cards,
+  .primer-grid,
+  .doom-panel {
     grid-template-columns: 1fr;
   }
   .tldr-grid {

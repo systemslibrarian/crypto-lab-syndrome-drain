@@ -14,6 +14,11 @@ import {
   crossoverD,
   maxSafeReuseLog2,
   maxLog2DForDisplay,
+  HAMMING_H,
+  HAMMING_N,
+  hammingSyndrome,
+  weight,
+  cosetForSyndrome,
   type SchemeParams,
 } from './model.ts';
 
@@ -473,6 +478,197 @@ function renderCrossoverGap(): void {
     assumes — the demo shows both rather than trusting either.</span>`;
 }
 
+/* ==================================================================
+   STEP 2 — "What is a syndrome?" primer ([7,4] Hamming code)
+   Every number here is real coding-theory arithmetic from model.ts:
+   s = H·e over GF(2), plus the coset (all patterns sharing that s).
+   ================================================================== */
+let primerError: Array<0 | 1> = [0, 0, 0, 0, 0, 0, 0];
+
+/** Render the 7 flip buttons for the error vector e. */
+function renderPrimerBits(): void {
+  const host = $('#primer-bits');
+  host.replaceChildren();
+  for (let j = 0; j < HAMMING_N; j++) {
+    const on = primerError[j] === 1;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `bit ${on ? 'bit-on' : ''}`;
+    b.dataset.j = String(j);
+    b.textContent = String(primerError[j]);
+    b.setAttribute(
+      'aria-label',
+      `Error bit ${j + 1} of ${HAMMING_N}: currently ${on ? '1 (flipped)' : '0 (clean)'}. Activate to toggle.`,
+    );
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.addEventListener('click', () => {
+      primerError[j] = (primerError[j] ^ 1) as 0 | 1;
+      renderPrimer();
+    });
+    host.appendChild(b);
+  }
+}
+
+/** Render H·e = s as a readable parity computation, plus the collision pair. */
+function renderPrimer(): void {
+  renderPrimerBits();
+  const s = hammingSyndrome(primerError);
+  const w = weight(primerError);
+  $('#primer-weight').textContent = String(w);
+
+  // matrix rows: show each parity row and which flipped bits it XORs
+  const matrix = $('#primer-matrix');
+  const rowsHtml = HAMMING_H.map((row, r) => {
+    const cells = row
+      .map((h, j) => {
+        const active = h === 1 && primerError[j] === 1;
+        const covered = h === 1;
+        const cls = active ? 'pm-hit' : covered ? 'pm-cov' : 'pm-off';
+        return `<span class="pm ${cls}">${primerError[j]}</span>`;
+      })
+      .join('');
+    return `<div class="pm-row"><span class="pm-label">row ${r + 1}</span>
+      <span class="pm-cells">${cells}</span>
+      <span class="pm-eq">= ${s[r]}</span></div>`;
+  }).join('');
+  matrix.innerHTML = rowsHtml;
+
+  // syndrome chip + decimal read
+  const sStr = s.join('');
+  $('#primer-s').textContent = sStr;
+  const dec = s[0] * 4 + s[1] * 2 + s[2];
+  $('#primer-s-read').textContent =
+    dec === 0
+      ? '(all zero — H sees no error)'
+      : `(= ${dec} in binary → the code says “a single flip at position ${dec}”)`;
+
+  // collision: two DIFFERENT patterns sharing this syndrome. cosetForSyndrome is
+  // sorted by weight; pick the lowest-weight and the next distinct one.
+  const coset = cosetForSyndrome(s);
+  const first = coset[0];
+  const second = coset.find((e) => e.join('') !== first.join('')) ?? coset[1] ?? first;
+  const fmtVec = (e: ReadonlyArray<0 | 1>) =>
+    `<code class="vec">${e.join('')}</code> <span class="muted small">(weight ${weight(e)})</span>`;
+  $('#primer-collision-text').innerHTML =
+    `For the syndrome <code class="mono">${sStr}</code>, the fewest-flips explanation is
+     ${fmtVec(first)} — but here is a <em>different</em> error with the very same
+     fingerprint: ${fmtVec(second)}. In this tiny code exactly
+     <strong>${coset.length}</strong> different error patterns share every syndrome.`;
+}
+
+/* ==================================================================
+   STEP 3 — "Why √M?" DOOM intuition visual.
+   M target syndromes as dots; a sweep band; hits scale with M so cost
+   per hit falls as √M (−½·log₂M bits). Tied to the chart's current D.
+   Pure geometry — no attack, no randomness beyond fixed dot layout.
+   ================================================================== */
+let doomLog2M = 0; // log2 of the number of targets shown in this panel
+
+/** Deterministic pseudo-scatter so dots look spread but never move between renders. */
+function scatterPoints(count: number, w: number, h: number, pad: number): Array<[number, number]> {
+  const pts: Array<[number, number]> = [];
+  // fixed low-discrepancy-ish sequence (golden-ratio), deterministic — no Math.random
+  const g = 0.6180339887498949;
+  for (let i = 0; i < count; i++) {
+    const fx = (i * g) % 1;
+    const fy = (i * g * g * 7 + 0.13 * i) % 1;
+    pts.push([pad + fx * (w - 2 * pad), pad + fy * (h - 2 * pad)]);
+  }
+  return pts;
+}
+
+function renderDoomViz(): void {
+  const host = $('#doom-viz');
+  host.replaceChildren();
+  const W = 520;
+  const H = 240;
+  const pad = 20;
+  const M = 2 ** doomLog2M;
+  const shown = Math.min(M, 128); // cap drawn dots; label carries the true count
+
+  const svg = svgEl('svg', {
+    viewBox: `0 0 ${W} ${H}`,
+    preserveAspectRatio: 'xMidYMid meet',
+    role: 'presentation',
+  });
+
+  // backdrop
+  svg.appendChild(svgEl('rect', { class: 'doom-bg', x: 0, y: 0, width: W, height: H, rx: 8 }));
+
+  // the "sweep" band — a single unit of the attacker's guessing work
+  const bandW = 46;
+  const bandX = (W - bandW) / 2;
+  const band = svgEl('rect', {
+    class: 'doom-band',
+    x: bandX,
+    y: pad - 6,
+    width: bandW,
+    height: H - 2 * (pad - 6),
+    rx: 6,
+  });
+  svg.appendChild(band);
+  const bandLbl = svgEl('text', { class: 'doom-band-lbl', x: W / 2, y: 14, 'text-anchor': 'middle' });
+  bandLbl.textContent = 'one sweep of guessing';
+  svg.appendChild(bandLbl);
+
+  // target dots; any dot inside the band counts as "hit by this sweep"
+  const pts = scatterPoints(shown, W, H, pad + 6);
+  let hits = 0;
+  for (const [x, y] of pts) {
+    const inBand = x >= bandX && x <= bandX + bandW;
+    if (inBand) hits++;
+    const dot = svgEl('circle', {
+      class: inBand ? 'doom-dot doom-dot-hit' : 'doom-dot',
+      cx: x.toFixed(1),
+      cy: y.toFixed(1),
+      r: inBand ? 6 : 4.5,
+    });
+    svg.appendChild(dot);
+  }
+
+  // headline readout inside the viz
+  const cap = svgEl('text', { class: 'doom-hit-lbl', x: W / 2, y: H - 8, 'text-anchor': 'middle' });
+  cap.textContent =
+    shown < M
+      ? `${big(M)} targets — the more dots overlap the sweep, the likelier a hit`
+      : `${M} target${M === 1 ? '' : 's'} · ${hits} caught by this one sweep`;
+  svg.appendChild(cap);
+
+  host.appendChild(svg);
+
+  // SR description
+  $('#doom-viz-desc').textContent =
+    `${M} target syndrome${M === 1 ? '' : 's'} shown as dots. One sweep of attacker work ` +
+    `catches any dot it overlaps; with more targets each sweep is likelier to score, ` +
+    `so landing one hit costs about the square root of ${M} times less work — ` +
+    `a discount of ${fmt(0.5 * doomLog2M, 1)} bits.`;
+}
+
+/** Update the DOOM panel's numbers (M, discount) and its tie-in to the chart's D. */
+function renderDoomPanel(): void {
+  const M = 2 ** doomLog2M;
+  $('#doom-targets-val').textContent = big(M);
+  $('#doom-m-count').textContent = big(M);
+  $('#doom-m-exp').textContent = String(doomLog2M);
+  const dslider = $('#doom-targets') as HTMLInputElement;
+  dslider.setAttribute('aria-valuetext', `2 to the power ${doomLog2M} = ${big(M)} targets`);
+  renderDoomViz();
+}
+
+/**
+ * Tie the DOOM panel's on-screen bargain to the chart's current D: the attacker
+ * holding a key for D sessions accumulates ≈ (worst-case) BIKE's n·D syndromes,
+ * but the shared drain applies per doubling of D, so we express the discount in
+ * D directly (½·log₂D) — the same law the chart plots.
+ */
+function renderDoomTie(log2d: number): void {
+  const D = 2 ** log2d;
+  $('#doom-tie-d').innerHTML = `D = 2<sup>${log2d}</sup>`;
+  // syndromes: show the generic ≈ D (per-session) count; BIKE's n·D is in Step 4.
+  $('#doom-tie-m').textContent = `≈ ${big(D)}`;
+  $('#doom-tie-bits').textContent = `−${fmt(0.5 * log2d, 1)} bits`;
+}
+
 /* ============================================================ theme toggle */
 function initThemeToggle(): void {
   const btn = $('#theme-toggle') as HTMLButtonElement;
@@ -510,6 +706,7 @@ function update(): void {
   renderLevelMeter(D, log2d);
   renderReadout(D);
   renderSyndromeCards(D);
+  renderDoomTie(log2d);
   describeForSR(D, log2d);
 
   // keep a shareable ?d= in the URL (no history spam) so a chosen D can be linked
@@ -535,10 +732,33 @@ function init(): void {
   renderSources();
   renderOps();
   renderCrossoverGap();
+  renderPrimer();
+  renderDoomPanel();
   update();
 
   slider.addEventListener('input', update);
   $('#show-paper').addEventListener('change', () => renderChart(Number(slider.value)));
+
+  // primer quick-actions
+  $('#primer-clear').addEventListener('click', () => {
+    primerError = [0, 0, 0, 0, 0, 0, 0];
+    renderPrimer();
+  });
+  $('#primer-single').addEventListener('click', () => {
+    // a single deterministic-ish flip driven by the clock is fine here (UI only,
+    // not model math); keeps the "see a nonzero syndrome" affordance one click away.
+    const j = Math.floor(Math.random() * HAMMING_N);
+    primerError = [0, 0, 0, 0, 0, 0, 0];
+    primerError[j] = 1;
+    renderPrimer();
+  });
+
+  // DOOM √M panel: its own targets slider, plus theme re-render handled by update()
+  const doomSlider = $('#doom-targets') as HTMLInputElement;
+  doomSlider.addEventListener('input', () => {
+    doomLog2M = Number(doomSlider.value);
+    renderDoomPanel();
+  });
   for (const id of ['#target-input', '#margin-input', '#budget-input', '#rate-input']) {
     $(id).addEventListener('input', renderOps);
   }

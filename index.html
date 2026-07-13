@@ -352,21 +352,197 @@
           </p>
         </section>
 
+        <!-- ================= PRIMER: WHAT IS A SYNDROME? ================= -->
+        <section id="primer" class="card" aria-labelledby="primer-h">
+          <p class="eyebrow card-step"><span class="step-num">2</span> First, the word everything hinges on</p>
+          <h2 id="primer-h">What is a syndrome?</h2>
+          <p class="lede">
+            The whole demo above <em>counts</em> syndromes — so before we count
+            them, let's see one. A <strong>syndrome</strong> is a short
+            <em>fingerprint of a hidden error</em>. Flip some bits in the toy code
+            below and watch its fingerprint change.
+          </p>
+
+          <div class="primer">
+            <div class="primer-intro prose">
+              <p>
+                Take a real (tiny) error-correcting code: the
+                <strong>[7,&nbsp;4] Hamming code</strong>. An
+                <em>error vector</em> <code>e</code> is 7 bits — a 1 wherever a
+                bit got flipped in transit. The code has a
+                <abbr class="gloss" title="Parity-check matrix H: the fixed rulebook of a code. Multiplying it by an error vector produces the syndrome — a short parity summary. Public in every code-based scheme.">parity-check
+                matrix</abbr> <code>H</code> (3&nbsp;rows). The
+                <strong>syndrome</strong> is just
+                <code>s = H·e</code> over GF(2): each syndrome bit is the
+                <strong>parity (XOR)</strong> of the error bits in that row of
+                <code>H</code>. Three bits that summarise seven.
+              </p>
+            </div>
+
+            <div class="primer-grid">
+              <div class="primer-e" role="group" aria-labelledby="primer-e-h">
+                <p id="primer-e-h" class="primer-sub">
+                  Error vector <code>e</code> — click a bit to flip it
+                </p>
+                <div id="primer-bits" class="bit-row">
+                  <!-- 7 toggle buttons injected by main.ts -->
+                </div>
+                <p class="primer-weight muted small">
+                  Weight (bits flipped): <strong id="primer-weight">0</strong>
+                </p>
+                <div class="primer-actions">
+                  <button type="button" class="preset" id="primer-clear">Clear</button>
+                  <button type="button" class="preset" id="primer-single">One random flip</button>
+                </div>
+              </div>
+
+              <div class="primer-calc" aria-live="polite" aria-atomic="true">
+                <p class="primer-sub">
+                  H · e = <strong>s</strong> &nbsp;<span class="muted small">(each row: XOR of the flipped bits it covers)</span>
+                </p>
+                <div id="primer-matrix" class="primer-matrix mono">
+                  <!-- H·e rendered by main.ts -->
+                </div>
+                <p class="primer-syndrome">
+                  syndrome <code>s</code> =
+                  <span id="primer-s" class="syndrome-chip mono">000</span>
+                  <span id="primer-s-read" class="muted small"></span>
+                </p>
+              </div>
+            </div>
+
+            <div class="primer-collision" id="primer-collision">
+              <p class="primer-sub">
+                Now the catch — decoding is <em>ambiguous</em>:
+              </p>
+              <p class="prose" id="primer-collision-text">
+                <!-- injected: two different error patterns, same syndrome -->
+              </p>
+              <p class="prose">
+                Both patterns produce the <strong>identical</strong> syndrome, so
+                <code>H</code> alone cannot tell them apart. Decoding is therefore
+                not "find <em>an</em> error" but <strong>"find the
+                <em>lowest-weight</em> error for this syndrome"</strong> — the
+                fewest flips that explain the fingerprint. <em>That</em> search is
+                the hard problem all three KEMs stand on. Everything below is about
+                how <strong>reusing a key hands the attacker many syndromes at
+                once</strong>, and why that makes the search cheaper.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ INTUITION: WHY MORE TARGETS ARE CHEAPER ============ -->
+        <section id="doom-why" class="card" aria-labelledby="doomwhy-h">
+          <p class="eyebrow card-step"><span class="step-num">3</span> The bargain that drains it</p>
+          <h2 id="doomwhy-h">Why more targets make each one cheaper (the √M idea)</h2>
+          <p class="lede">
+            Here is the intuition the numbers rest on. Decoding one syndrome is
+            hard because the attacker must <em>guess-and-check</em> candidate
+            errors until one fits. Holding <strong>M</strong> syndromes at once
+            doesn't make any single one easier — it means <em>every guess is
+            checked against all M targets simultaneously</em>, so a hit is
+            <strong>M× more likely per guess</strong>.
+          </p>
+
+          <div class="doom-panel">
+            <div class="doom-viz-wrap">
+              <div
+                id="doom-viz"
+                class="doom-viz"
+                role="img"
+                aria-labelledby="doom-viz-cap"
+              >
+                <!-- SVG injected by main.ts -->
+              </div>
+              <p id="doom-viz-cap" class="chart-cap">
+                Each dot is one target syndrome the attacker holds. A single
+                “sweep” of guessing (the moving band) lands a hit whenever it
+                touches <em>any</em> target — so more targets means more hits for
+                the same work. A full textual description is available to screen
+                readers below.
+              </p>
+              <p id="doom-viz-desc" class="visually-hidden" aria-live="polite"></p>
+            </div>
+
+            <div class="doom-explain">
+              <label class="toggle-line doom-targets-label" for="doom-targets">
+                Targets M (syndromes held at once):
+                <strong id="doom-targets-val">1</strong>
+              </label>
+              <input
+                type="range"
+                id="doom-targets"
+                min="0"
+                max="10"
+                step="1"
+                value="0"
+                aria-describedby="doom-targets-read"
+                aria-valuetext="2 to the power 0 = 1 target"
+              />
+              <p id="doom-targets-read" class="muted small">
+                <span id="doom-m-count">1</span> target
+                <span class="muted">(= 2<sup id="doom-m-exp">0</sup>)</span>
+              </p>
+
+              <ul class="doom-facts">
+                <li>
+                  Work to land one hit scales like <strong>√M</strong>, not M —
+                  the classic <em>birthday-style</em> bargain: doubling the
+                  targets only <em>halves the square root's exponent's growth</em>,
+                  buying a <strong>½-bit</strong> discount per doubling.
+                </li>
+                <li>
+                  In bits, holding M targets is worth
+                  <strong>−½·log₂(M)</strong> off the attacker's cost. That is
+                  <em>exactly</em> the DOOM law the chart uses, now with a picture
+                  behind it.
+                </li>
+                <li class="doom-tie">
+                  Reuse count on the chart:
+                  <strong id="doom-tie-d">D = 2⁰</strong> →
+                  attacker holds <strong id="doom-tie-m">≈ M</strong> syndromes →
+                  discount <strong id="doom-tie-bits">−0.0 bits</strong>.
+                  <span class="muted small">(Drag D above; this follows it.)</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <p class="prose footnote">
+            The dots are a faithful cartoon of a real amortised
+            <abbr class="gloss" title="Information-Set Decoding: the family of best-known classical algorithms for syndrome decoding. MMT and Dumer–Stern are specific ISD variants.">ISD</abbr>
+            search, not the search itself (the demo runs no attack). The point is
+            only the <em>shape</em>: probability of a hit rises with the number of
+            targets, so cost per hit falls as √M. Precise per-scheme figures come
+            from the paper's tables, transcribed in the reference card below.
+          </p>
+        </section>
+
         <!-- ======================= MECHANISM ======================= -->
         <section class="card" aria-labelledby="mech-h">
-          <p class="eyebrow card-step"><span class="step-num">2</span> Understand it</p>
+          <p class="eyebrow card-step"><span class="step-num">4</span> Understand it</p>
           <h2 id="mech-h">Why it drains: the DOOM lever</h2>
           <div class="prose">
             <p>
-              All three KEMs rest on <strong>syndrome decoding</strong>: given a
-              parity-check matrix and a syndrome, find the low-weight error that
-              produces it. <em>Decoding One Out of Many</em> (DOOM, Sendrier)
-              says that if you hold <strong>M syndromes</strong> for the same
-              matrix, decoding <em>any one</em> of them costs about
-              <strong>√M less</strong> — a saving of ½·log₂(M) bits.
+              You just met both halves of this. All three KEMs rest on
+              <strong>syndrome decoding</strong>: given a
+              <abbr class="gloss" title="Parity-check matrix H: the fixed rulebook of a code. H·e = s turns a hidden error into its syndrome. You saw this in the primer above.">parity-check
+              matrix</abbr> and a syndrome, find the low-weight error that
+              produces it (Step&nbsp;2). <em>Decoding One Out of Many</em> (DOOM,
+              Sendrier) says that if you hold <strong>M syndromes</strong> for the
+              same matrix, decoding <em>any one</em> of them costs about
+              <strong>√M less</strong> — a saving of ½·log₂(M) bits (Step&nbsp;3).
+              The attacker's best tool for that search is
+              <abbr class="gloss" title="MMT (May–Meurer–Thomae): a specific information-set-decoding algorithm — the attacker's best known variant. T₁ below is its single-instance cost.">MMT</abbr>,
+              one member of the
+              <abbr class="gloss" title="Information-Set Decoding: the family of best-known classical algorithms for syndrome decoding (MMT, Dumer–Stern, …).">ISD</abbr>
+              family.
             </p>
             <p>
-              The quasi-cyclic ring
+              The
+              <abbr class="gloss" title="Quasi-cyclic ring F₂[X]/(Xⁿ−1): a code whose structure repeats under cyclic shifts, so one instance mechanically yields n shifted instances for free.">quasi-cyclic
+              ring</abbr>
               <code>F₂[X]/(Xⁿ − 1)</code> behind HQC and BIKE already hands an
               attacker <strong>n</strong> syndromes from a single key (each cyclic
               shift Xʲ is another instance). That √n saving was
@@ -397,7 +573,7 @@
 
         <!-- =================== ROTATION CALCULATOR =================== -->
         <section class="card card-primary" aria-labelledby="ops-h">
-          <p class="eyebrow card-step"><span class="step-num">3</span> Act on it</p>
+          <p class="eyebrow card-step"><span class="step-num">5</span> Act on it</p>
           <h2 id="ops-h">Key-rotation policy calculator</h2>
           <p class="lede">
             The operational takeaway: rotate public keys on a schedule tied to

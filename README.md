@@ -17,8 +17,13 @@ be rotated on a schedule tied to session volume.** This lab **computes** effecti
 bit-security from published NIST Level‑1 parameters and the paper's √D degradation
 law; it runs **no attack** — no decoding, no DOOM execution, no random numbers.
 Every number on screen is real arithmetic you can audit in
-[`src/model.ts`](src/model.ts) and [`PAPER-NOTES.md`](PAPER-NOTES.md). Built with
-Vite + TypeScript, no backend.
+[`src/model.ts`](src/model.ts) and [`PAPER-NOTES.md`](PAPER-NOTES.md). To keep the
+core vocabulary concrete rather than assumed, the page first lets you *build* a
+syndrome by hand on a real **[7,4] Hamming code** (`s = H·e` over GF(2), with a
+live collision showing why decoding must find the *lowest‑weight* error), then
+visualizes *why* holding **M** syndromes cheapens the search by ≈ **√M** — the
+birthday‑style bargain the whole result rests on. Built with Vite + TypeScript, no
+backend.
 
 ## When to Use It
 
@@ -31,7 +36,15 @@ Vite + TypeScript, no backend.
 
 **[systemslibrarian.github.io/crypto-lab-syndrome-drain](https://systemslibrarian.github.io/crypto-lab-syndrome-drain/)**
 
-The page is layered for progressive disclosure: a **TL;DR** card up top, a **live security‑level meter** that gives the qualitative "is it OK?" glance as you drag D, an interactive **erosion chart** (slider for D, preset jump buttons for each crossover, three live curves, the red floor line, both modeled and paper‑stated crossover markers, and a live readout table), a **DOOM mechanism** explainer with live syndrome counts, a **key‑rotation policy calculator** with realistic traffic‑scenario presets, a **Common misconceptions** FAQ (including why ML‑KEM/Kyber isn't hit the same way), a **Parameters & sources** drill‑down where every number cites the paper plus a copy‑pasteable **"verify it yourself"** block, and an honest **Known Gaps** panel. Every model‑derived number carries an inline **"idealized √D model"** badge, and the chart plots two crossover markers per scheme (a filled dot for the model, a hollow diamond for the paper's full‑ISD table) so the model‑vs‑reality distinction is native to the UI. You can deep‑link a specific reuse count with `?d=` (log₂ of D), e.g. `…/?d=21`.
+The page is layered for progressive disclosure, walking a newcomer from a concrete picture up to the operational takeaway:
+
+1. **See it** — an interactive **erosion chart** (slider for D, preset jump buttons for each crossover, three live curves, the red floor line, both modeled and paper‑stated crossover markers, a live **security‑level meter** for the "is it OK?" glance, and a live readout table), preceded by a **TL;DR** card.
+2. **What is a syndrome?** — a hands‑on primer on a real **[7,4] Hamming code**: flip error bits and watch the parity‑check matrix multiply `H·e = s` into a 3‑bit syndrome, then see **two different error patterns collide on the same syndrome** — so decoding means "find the *lowest‑weight* error," the hard problem the KEMs stand on. (All arithmetic is real coding theory in [`src/model.ts`](src/model.ts), tested.)
+3. **Why √M?** — a visual for the DOOM bargain: **M target syndromes as dots**, a single "sweep" of attacker work that scores a hit whenever it overlaps *any* target, so more targets means more hits per unit work — hence ≈ **√M** less work to land one, a **−½·log₂(M)** discount. The panel ties its M back to the chart's current D.
+4. **Understand it** — the **DOOM mechanism** explainer with live syndrome counts (BIKE's `n·D` vs `D`), with inline glosses for load‑bearing jargon (syndrome, parity‑check matrix, ISD, MMT, quasi‑cyclic ring).
+5. **Act on it** — a **key‑rotation policy calculator** with realistic traffic‑scenario presets.
+
+Below the spine sit a **Common misconceptions** FAQ (including why ML‑KEM/Kyber isn't hit the same way), a **Parameters & sources** drill‑down where every number cites the paper plus a copy‑pasteable **"verify it yourself"** block, and an honest **Known Gaps** panel. Every model‑derived number carries an inline **"idealized √D model"** badge, and the chart plots two crossover markers per scheme (a filled dot for the model, a hollow diamond for the paper's full‑ISD table) so the model‑vs‑reality distinction is native to the UI. You can deep‑link a specific reuse count with `?d=` (log₂ of D), e.g. `…/?d=21`.
 
 ## What Can Go Wrong
 

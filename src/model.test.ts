@@ -17,6 +17,12 @@ import {
   maxSafeReuseLog2,
   maxLog2DForDisplay,
   DOOM_SLOPE_BITS_PER_DOUBLING,
+  HAMMING_H,
+  HAMMING_N,
+  HAMMING_R,
+  hammingSyndrome,
+  weight,
+  cosetForSyndrome,
 } from './model.ts';
 
 const bike = getScheme('bike');
@@ -126,6 +132,65 @@ describe('margin + safe-reuse helpers', () => {
 
   it('a higher safety margin shrinks the safe-reuse budget', () => {
     expect(maxSafeReuseLog2(hqc, 143 + 10)).toBeLessThan(maxSafeReuseLog2(hqc, 143));
+  });
+});
+
+describe('syndrome primer ([7,4] Hamming code)', () => {
+  it('H has the right shape (3×7) and columns are 1..7 in binary', () => {
+    expect(HAMMING_H.length).toBe(HAMMING_R);
+    for (const row of HAMMING_H) expect(row.length).toBe(HAMMING_N);
+    // column j (0-indexed) read top-to-bottom as MSB..LSB equals j+1
+    for (let j = 0; j < HAMMING_N; j++) {
+      const val = HAMMING_H[0][j] * 4 + HAMMING_H[1][j] * 2 + HAMMING_H[2][j];
+      expect(val).toBe(j + 1);
+    }
+  });
+
+  it('the all-zero error has the all-zero syndrome', () => {
+    expect(hammingSyndrome([0, 0, 0, 0, 0, 0, 0])).toEqual([0, 0, 0]);
+  });
+
+  it('a single-bit error at position j yields the syndrome = j in binary', () => {
+    for (let j = 0; j < HAMMING_N; j++) {
+      const e = Array.from({ length: HAMMING_N }, (_, i) => (i === j ? 1 : 0)) as Array<0 | 1>;
+      const s = hammingSyndrome(e);
+      const val = s[0] * 4 + s[1] * 2 + s[2];
+      expect(val).toBe(j + 1); // nonzero → the code pinpoints the flipped bit
+    }
+  });
+
+  it('two DIFFERENT error patterns can share one syndrome (decoding is ambiguous by weight)', () => {
+    // e1 = single bit at pos 6; find another, heavier pattern with the same syndrome.
+    const e1 = [0, 0, 0, 0, 0, 0, 1] as Array<0 | 1>;
+    const s = hammingSyndrome(e1);
+    const coset = cosetForSyndrome(s);
+    expect(coset.length).toBe(1 << (HAMMING_N - HAMMING_R)); // 2^4 = 16 patterns per syndrome
+    // the lowest-weight member is the unique single-bit error the decoder picks
+    expect(weight(coset[0])).toBe(1);
+    expect(coset[0]).toEqual(e1);
+    // but heavier patterns exist with the identical syndrome — genuine collisions
+    const heavier = coset.find((e) => weight(e) > 1);
+    expect(heavier).toBeDefined();
+    expect(hammingSyndrome(heavier!)).toEqual(s);
+  });
+
+  it('every syndrome partitions all 128 vectors into equal-size cosets', () => {
+    const seen = new Set<string>();
+    let total = 0;
+    for (let a = 0; a < 2; a++)
+      for (let b = 0; b < 2; b++)
+        for (let c = 0; c < 2; c++) {
+          const coset = cosetForSyndrome([a as 0 | 1, b as 0 | 1, c as 0 | 1]);
+          total += coset.length;
+          for (const e of coset) seen.add(e.join(''));
+        }
+    expect(total).toBe(1 << HAMMING_N); // 128, every vector accounted for once
+    expect(seen.size).toBe(1 << HAMMING_N);
+  });
+
+  it('rejects malformed inputs instead of guessing', () => {
+    expect(() => hammingSyndrome([0, 1, 0] as Array<0 | 1>)).toThrow();
+    expect(() => cosetForSyndrome([0, 0] as Array<0 | 1>)).toThrow();
   });
 });
 

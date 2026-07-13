@@ -123,6 +123,72 @@ export const SCHEMES: SchemeParams[] = [
   },
 ];
 
+/* ============================================================ syndrome primer
+ *
+ * A concrete, real (not toy-security) [7,4] Hamming code so a newcomer can SEE
+ * what a "syndrome" is before the demo starts counting them. This is standard
+ * textbook coding theory — the same syndrome-decoding operation the KEMs rest
+ * on, just at a size a human can read. It carries NO security; it exists purely
+ * to build the mental image "syndrome = short fingerprint of a hidden error".
+ *
+ * H is the 3×7 parity-check matrix of the [7,4] Hamming code: column j is the
+ * 3-bit binary representation of j (1..7). The syndrome of an error vector e is
+ * s = H·e over GF(2) (each syndrome bit is the XOR/parity of the error bits in
+ * that row). For a single-bit error at position j, s is exactly j in binary —
+ * which is why this code corrects any single-bit error. Two DIFFERENT error
+ * patterns can share one syndrome (they differ by a codeword), which is exactly
+ * why decoding means "find the LOWEST-WEIGHT e for this s", not "find any e".
+ */
+
+/** [7,4] Hamming parity-check matrix H (3 rows × 7 columns), GF(2). */
+export const HAMMING_H: ReadonlyArray<ReadonlyArray<0 | 1>> = [
+  [0, 0, 0, 1, 1, 1, 1],
+  [0, 1, 1, 0, 0, 1, 1],
+  [1, 0, 1, 0, 1, 0, 1],
+];
+
+/** Length of the primer code's error/codeword vectors (7). */
+export const HAMMING_N = 7;
+/** Number of parity checks / syndrome bits (3). */
+export const HAMMING_R = 3;
+
+/**
+ * Syndrome s = H·e over GF(2) for a length-7 error vector e (bits 0/1).
+ * Returns a length-3 syndrome (each bit = parity of e over that row of H).
+ * Pure: no state, no randomness. Throws on malformed input.
+ */
+export function hammingSyndrome(e: ReadonlyArray<0 | 1>): Array<0 | 1> {
+  if (e.length !== HAMMING_N) throw new Error(`error vector must have length ${HAMMING_N}`);
+  return HAMMING_H.map((row) => {
+    let bit = 0;
+    for (let j = 0; j < HAMMING_N; j++) bit ^= row[j] & e[j];
+    return bit as 0 | 1;
+  });
+}
+
+/** Hamming weight (number of set bits) of a 0/1 vector — the "cost" a decoder minimises. */
+export function weight(e: ReadonlyArray<0 | 1>): number {
+  return e.reduce((acc: number, b) => acc + (b ? 1 : 0), 0);
+}
+
+/**
+ * All length-7 error vectors sharing a given syndrome s = H·e, sorted by weight
+ * (lowest first). This is the whole coset of the code for that syndrome — every
+ * pattern the attacker cannot tell apart from e using H alone. Decoding = pick
+ * the lowest-weight member. Enumerated honestly over all 2^7 vectors (128).
+ */
+export function cosetForSyndrome(s: ReadonlyArray<0 | 1>): Array<Array<0 | 1>> {
+  if (s.length !== HAMMING_R) throw new Error(`syndrome must have length ${HAMMING_R}`);
+  const out: Array<Array<0 | 1>> = [];
+  for (let mask = 0; mask < 1 << HAMMING_N; mask++) {
+    const e = Array.from({ length: HAMMING_N }, (_, j) => ((mask >> j) & 1) as 0 | 1);
+    const syn = hammingSyndrome(e);
+    if (syn.every((b, i) => b === s[i])) out.push(e);
+  }
+  out.sort((a, b) => weight(a) - weight(b));
+  return out;
+}
+
 /** Look up a scheme by id; throws on unknown id (keeps callers honest). */
 export function getScheme(id: SchemeId): SchemeParams {
   const s = SCHEMES.find((x) => x.id === id);
