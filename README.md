@@ -22,7 +22,7 @@ core vocabulary concrete rather than assumed, the page first lets you *build* a
 syndrome by hand on a real **[7,4] Hamming code** (`s = H·e` over GF(2), with a
 live collision showing why decoding must find the *lowest‑weight* error), then
 visualizes *why* holding **M** syndromes cheapens the search by ≈ **√M** — the
-birthday‑style bargain the whole result rests on. Built with Vite + TypeScript, no
+ISD list‑matching tradeoff the whole result rests on. Built with Vite + TypeScript, no
 backend.
 
 ## When to Use It
@@ -51,7 +51,7 @@ Below the spine sit a **Common misconceptions** FAQ (including why ML‑KEM/Kybe
 - **Reusing one public key across many sessions** — effective security drains by ½·log₂(D) bits; high-volume reuse can push a Level‑1 key below the 143‑bit floor.
 - **BIKE reuses are worse** — its quasi-cyclic structure donates ≈ n syndromes per session (≈ n·D total), so BIKE‑1 crosses the floor far sooner (~D = 2¹¹) than HQC or McEliece.
 - **No rotation schedule** — without rotating keys on a cadence tied to session volume, accumulated syndromes silently erode the security margin over time.
-- **Conflating the idealized √D model with reality** — for mceliece3488‑64 the simple √D law (~2¹⁷) and the paper's full‑ISD table (2²¹) disagree, because McEliece's real ISD slope (~0.39) is shallower than the ½ the law assumes; trusting one number blindly misstates the margin.
+- **Conflating the idealized √D model with reality** — for mceliece3488‑64 the simple √D law (~2^16.4) and the paper's full‑ISD table (2²¹) disagree, because McEliece's real ISD slope (~0.39) is shallower than the ½ the law assumes; trusting one number blindly misstates the margin.
 - **Assuming all PQ KEMs degrade equally** — this effect is specific to code-based syndrome decoding; structured-lattice KEMs like ML-KEM are not hit the same way.
 
 ## Real-World Usage
@@ -89,7 +89,7 @@ applied twice (doing so would break the published 2³⁴ crossover — see
 
 `crossoverD()` computes each crossover from the model **and** cross‑checks it
 against the paper's full‑ISD tables. They agree for HQC and BIKE; for
-**mceliece3488‑64 they differ** (modeled ≈2¹⁷ vs paper 2²¹, because McEliece's
+**mceliece3488‑64 they differ** (modeled ≈2^16.4 vs paper 2²¹, because McEliece's
 real ISD slope ≈0.39 is shallower than the ½ the law assumes). The demo shows
 **both** and flags the gap rather than silently trusting one.
 

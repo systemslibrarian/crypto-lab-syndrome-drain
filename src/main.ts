@@ -181,7 +181,9 @@ function renderChart(currentLog2D: number): void {
         r: 5,
         fill: color,
       });
-      dot.appendChild(svgTitle(`${s.label}: modeled crossover ≈ 2^${c.computedLog2} (idealized √D law)`));
+      dot.appendChild(
+        svgTitle(`${s.label}: modeled crossover ≈ 2^${fmt(c.computedLog2Exact, 1)} (idealized √D law)`),
+      );
       svg.appendChild(dot);
     }
     // PAPER-STATED crossover: hollow diamond at the paper's full-ISD value.
@@ -466,12 +468,14 @@ function renderCrossoverGap(): void {
     const c = crossoverD(s);
     const paper = c.paperStatedLog2 === 'UNKNOWN' ? 'UNKNOWN' : `2^${c.paperStatedLog2}`;
     const flag = c.agree ? '' : ' <span class="flag">— differs, both shown</span>';
-    return `<li><strong>${s.label}:</strong> modeled crossover 2^${c.computedLog2}
-      (curve hits floor at 2^${fmt(c.computedLog2Exact, 1)}), paper-stated ${paper}${flag}</li>`;
+    return `<li><strong>${s.label}:</strong> modeled crossover
+      2^${fmt(c.computedLog2Exact, 1)} (where the curve hits the floor),
+      paper-stated ${paper}${flag}</li>`;
   }).join('');
   li.innerHTML = `
     Computed-vs-paper crossover check (the idealized ½-slope law vs. the paper's
-    full-ISD tables):
+    full-ISD tables), with the modeled values quoted as model outputs to one
+    decimal rather than rounded to a convenient integer:
     <ul style="margin:.5rem 0 0">${rows}</ul>
     <span class="small muted">For mceliece3488-64 the modeled value is lower than
     the paper's because its real ISD slope (≈0.39) is shallower than the ½ the law
@@ -639,8 +643,10 @@ function renderDoomViz(): void {
   // SR description
   $('#doom-viz-desc').textContent =
     `${M} target syndrome${M === 1 ? '' : 's'} shown as dots. One sweep of attacker work ` +
-    `catches any dot it overlaps; with more targets each sweep is likelier to score, ` +
-    `so landing one hit costs about the square root of ${M} times less work — ` +
+    `catches any dot it overlaps; a hit gets likelier in proportion to the number of ` +
+    `targets, while matching every sweep against them all makes the sweep about the ` +
+    `square root of that number times slower. Netting the two, landing one hit costs ` +
+    `about the square root of ${M} times less work — ` +
     `a discount of ${fmt(0.5 * doomLog2M, 1)} bits.`;
 }
 

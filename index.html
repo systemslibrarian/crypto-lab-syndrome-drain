@@ -436,7 +436,11 @@
             errors until one fits. Holding <strong>M</strong> syndromes at once
             doesn't make any single one easier — it means <em>every guess is
             checked against all M targets simultaneously</em>, so a hit is
-            <strong>M× more likely per guess</strong>.
+            <strong>M× more likely per guess</strong>. That gain is not free:
+            keeping and searching the candidate list against M targets rather
+            than one makes every iteration more expensive, slowing the
+            enumeration by about <strong>√M</strong>. Net the two against each
+            other — <strong>M ÷ √M = √M</strong> — and that is the whole law.
           </p>
 
           <div class="doom-panel">
@@ -482,7 +486,7 @@
               <ul class="doom-facts">
                 <li>
                   Work to land one hit scales like <strong>√M</strong>, not M —
-                  the classic <em>birthday-style</em> bargain: doubling the
+                  an <em>ISD list-matching</em> tradeoff: doubling the
                   targets only <em>halves the square root's exponent's growth</em>,
                   buying a <strong>½-bit</strong> discount per doubling.
                 </li>
@@ -665,7 +669,7 @@
             <span class="src-badge src-model">idealized √D model</span>
             "Max safe D" is computed from the same simplified √D law as the chart.
             Where the paper's full-ISD crossover sits <em>higher</em> (Classic
-            McEliece: paper 2²¹ vs the model's ≈2¹⁷), the model is the
+            McEliece: paper 2²¹ vs the model's ≈2<sup>16.4</sup>), the model is the
             <strong>more conservative</strong> bound — it tells you to rotate
             sooner, which is the safe direction to err.
           </p>
@@ -716,7 +720,10 @@
               </p>
               <pre class="formula"><code>crossover_log2D = 2 * (T1 - 143)</code></pre>
               <p>
-                That gives BIKE ≈ 2¹¹, McEliece ≈ 2¹⁷ (model) and HQC ≈ 2³⁴.
+                That gives BIKE ≈ 2<sup>10.3</sup>, McEliece ≈ 2<sup>16.4</sup>
+                and HQC ≈ 2<sup>34.1</sup> — model outputs quoted to one decimal,
+                so the same rule applies to all three and to the Known Gaps panel
+                below.
                 Cross-check against the paper's full-ISD tables (Abstract and
                 Tables 2 / 5 / 7), which state 2¹¹, 2²¹ and 2³⁴ respectively — the
                 McEliece gap is the model-vs-reality slope difference, flagged
