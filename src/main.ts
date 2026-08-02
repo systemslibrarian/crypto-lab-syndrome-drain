@@ -16,11 +16,26 @@ import {
   maxLog2DForDisplay,
   HAMMING_H,
   HAMMING_N,
+  HAMMING_SYNDROME_COUNT,
+  HAMMING_VECTOR_COUNT,
+  HAMMING_COSET_SIZE,
   hammingSyndrome,
   weight,
   cosetForSyndrome,
+  runHammingDoom,
+  intToHammingSyndrome,
   type SchemeParams,
 } from './model.ts';
+import {
+  makeRng,
+  runDoomSweep,
+  doomVerdict,
+  PREDICTED_SLOPE,
+  TOY_N,
+  TOY_R,
+  TOY_W,
+  type DoomSweepResult,
+} from './doom.ts';
 
 /* ------------------------------------------------------------------ helpers */
 const $ = <T extends Element = HTMLElement>(sel: string): T => {
@@ -675,6 +690,248 @@ function renderDoomTie(log2d: number): void {
   $('#doom-tie-bits').textContent = `−${fmt(0.5 * log2d, 1)} bits`;
 }
 
+/* ==================================================================
+   STEP 2b — decode-one-out-of-many on the SAME [7,4] code.
+   A real random-order scan of all 128 error vectors against M targets.
+   Every number below is either counted during that scan or computed in
+   closed form; none of it is illustrated.
+   ================================================================== */
+function renderHammingDoom(): void {
+  const M = Number(($('#hdoom-m') as HTMLInputElement).value);
+  const trials = Number(($('#hdoom-trials') as HTMLInputElement).value);
+  const run = runHammingDoom(M, trials, makeRng((Math.random() * 2 ** 31) >>> 0));
+
+  const targetChips = run.targets
+    .map((t) => `<code class="mono syndrome-chip-sm">${intToHammingSyndrome(t).join('')}</code>`)
+    .join(' ');
+  const hits = HAMMING_COSET_SIZE * M;
+  const ratio = run.meanGuesses / run.expectedGuesses;
+  const agrees = ratio > 0.75 && ratio < 1.25;
+
+  $('#hdoom-out').innerHTML = `
+    <p class="hdoom-line">
+      Targets held: ${targetChips}
+      <span class="muted small">(${hits} of ${HAMMING_VECTOR_COUNT} vectors are hits)</span>
+    </p>
+    <ul class="hdoom-stats">
+      <li>
+        <span class="hd-k">Measured</span>
+        <span class="hd-v">${fmt(run.meanGuesses, 2)}</span>
+        <span class="hd-u">guesses, averaged over ${run.trials} real scans</span>
+      </li>
+      <li>
+        <span class="hd-k">Predicted</span>
+        <span class="hd-v">${fmt(run.expectedGuesses, 2)}</span>
+        <span class="hd-u">= 129 / (16·${M} + 1), exact</span>
+      </li>
+      <li class="${agrees ? 'hd-ok' : 'hd-off'}">
+        <span class="hd-k">Verdict</span>
+        <span class="hd-v">${agrees ? 'matches' : 'off'}</span>
+        <span class="hd-u">measured ÷ predicted = ${fmt(ratio, 2)}${
+          agrees
+            ? ''
+            : ' — this run landed outside ±25%; average more scans to tighten it'
+        }</span>
+      </li>
+    </ul>
+    <p class="hdoom-line small">
+      Last scan ended on <code class="vec">${run.lastFound.join('')}</code>
+      (weight ${weight(run.lastFound)}), whose syndrome
+      <code class="mono">${hammingSyndrome(run.lastFound).join('')}</code>
+      is target #${run.lastTargetIndex + 1} of ${M}. Verified against H before
+      being reported.
+    </p>`;
+}
+
+/* ==================================================================
+   STEP 4 — the measured toy-DOOM lab.
+   Runs a real two-list search on a real random code and plots the work
+   it measured. No point on this chart exists until a search produced it.
+   ================================================================== */
+let lastSweep: DoomSweepResult | null = null;
+
+function renderLabChart(result: DoomSweepResult): void {
+  const host = $('#lab-chart');
+  host.replaceChildren();
+  const W = 720;
+  const H = 380;
+  const m = { top: 22, right: 18, bottom: 48, left: 56 };
+  const iw = W - m.left - m.right;
+  const ih = H - m.top - m.bottom;
+
+  const xMax = Math.max(1, result.points[result.points.length - 1].log2M);
+  const ys = result.points.flatMap((p) => [
+    Math.log2(p.meanEnumerations),
+    Math.log2(p.meanLookups),
+  ]);
+  const yLo = Math.floor(Math.min(...ys)) - 1;
+  const yHi = Math.ceil(Math.max(...ys)) + 1;
+
+  const xOf = (v: number) => m.left + (v / xMax) * iw;
+  const yOf = (v: number) => m.top + ih - ((v - yLo) / (yHi - yLo)) * ih;
+
+  const svg = svgEl('svg', {
+    viewBox: `0 0 ${W} ${H}`,
+    preserveAspectRatio: 'xMidYMid meet',
+    role: 'presentation',
+  });
+
+  for (let v = yLo; v <= yHi; v++) {
+    svg.appendChild(
+      svgEl('line', { class: 'grid-line', x1: m.left, y1: yOf(v), x2: W - m.right, y2: yOf(v) }),
+    );
+    const lbl = svgEl('text', { class: 'axis-label', x: m.left - 8, y: yOf(v) + 4, 'text-anchor': 'end' });
+    lbl.textContent = `2^${v}`;
+    svg.appendChild(lbl);
+  }
+  for (let k = 0; k <= xMax; k++) {
+    const lbl = svgEl('text', {
+      class: 'axis-label',
+      x: xOf(k),
+      y: m.top + ih + 18,
+      'text-anchor': 'middle',
+    });
+    lbl.textContent = `2^${k}`;
+    svg.appendChild(lbl);
+  }
+  svg.appendChild(svgEl('line', { class: 'axis-line', x1: m.left, y1: m.top, x2: m.left, y2: m.top + ih }));
+  svg.appendChild(
+    svgEl('line', { class: 'axis-line', x1: m.left, y1: m.top + ih, x2: W - m.right, y2: m.top + ih }),
+  );
+
+  const xTitle = svgEl('text', { class: 'axis-title', x: m.left + iw / 2, y: H - 6, 'text-anchor': 'middle' });
+  xTitle.textContent = 'M — target syndromes held at once (log₂ scale)';
+  svg.appendChild(xTitle);
+  const yTitle = svgEl('text', {
+    class: 'axis-title',
+    x: 14,
+    y: m.top + ih / 2,
+    'text-anchor': 'middle',
+    transform: `rotate(-90 14 ${m.top + ih / 2})`,
+  });
+  yTitle.textContent = 'Measured operations (log₂ scale)';
+  svg.appendChild(yTitle);
+
+  // Reference: the −½ slope the law predicts, anchored at the M = 1 measurement.
+  const anchor = Math.log2(result.points[0].meanEnumerations);
+  svg.appendChild(
+    svgEl('path', {
+      class: 'lab-ideal',
+      d: `M${xOf(0)} ${yOf(anchor)} L${xOf(xMax)} ${yOf(anchor + PREDICTED_SLOPE * xMax)}`,
+    }),
+  );
+  const idealLbl = svgEl('text', {
+    class: 'axis-label',
+    x: xOf(xMax),
+    y: yOf(anchor + PREDICTED_SLOPE * xMax) - 8,
+    'text-anchor': 'end',
+  });
+  idealLbl.textContent = 'law: slope −0.5';
+  svg.appendChild(idealLbl);
+
+  const series = (
+    pick: (p: DoomSweepResult['points'][number]) => number,
+    cls: string,
+    label: string,
+    filled: boolean,
+  ) => {
+    let d = '';
+    result.points.forEach((p, i) => {
+      const x = xOf(p.log2M);
+      const y = yOf(Math.log2(pick(p)));
+      d += `${i === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)} `;
+    });
+    svg.appendChild(svgEl('path', { class: `scheme-line ${cls}`, d }));
+    for (const p of result.points) {
+      const dot = svgEl('circle', {
+        class: filled ? 'lab-dot' : 'lab-dot lab-dot-hollow',
+        cx: xOf(p.log2M),
+        cy: yOf(Math.log2(pick(p))),
+        r: 4.5,
+      });
+      dot.appendChild(svgTitle(`${label} at M = ${p.M}: ${Math.round(pick(p))} (${p.solved}/${p.trials} solved)`));
+      svg.appendChild(dot);
+    }
+  };
+  series((p) => p.meanEnumerations, 'lab-enum', 'syndrome computations', true);
+  series((p) => p.meanLookups, 'lab-lookup', 'table lookups', false);
+
+  host.appendChild(svg);
+
+  $('#lab-chart-desc').textContent =
+    `Measured over ${result.totalTrials} searches on a random n=${result.code.n}, r=${result.code.r} ` +
+    `code with error weight ${result.code.w}. Syndrome computations fell from ` +
+    `${Math.round(result.points[0].meanEnumerations)} at one target to ` +
+    `${Math.round(result.points[result.points.length - 1].meanEnumerations)} at ` +
+    `${result.points[result.points.length - 1].M} targets, a fitted slope of ` +
+    `${fmt(result.measuredSlope, 3)} per doubling. Table lookups rose over the same range, ` +
+    `fitted slope ${fmt(result.measuredLookupSlope, 3)}.`;
+}
+
+function renderLabTable(result: DoomSweepResult): void {
+  const body = $('#lab-body');
+  body.replaceChildren();
+  for (const p of result.points) {
+    const tr = document.createElement('tr');
+    if (p.solved < p.trials) tr.className = 'is-below';
+    tr.innerHTML = `
+      <td data-label="Targets M" class="mono">2<sup>${p.log2M}</sup> = ${p.M}</td>
+      <td data-label="Syndrome computations" class="num">${Math.round(p.meanEnumerations).toLocaleString()}</td>
+      <td data-label="Table lookups" class="num">${Math.round(p.meanLookups).toLocaleString()}</td>
+      <td data-label="Solved" class="num">${p.solved} / ${p.trials}</td>`;
+    body.appendChild(tr);
+  }
+}
+
+function renderLabVerdict(result: DoomSweepResult): void {
+  const v = doomVerdict(result);
+  const cls = v.kind === 'agree' ? 'lm-safe' : v.kind === 'incomplete' ? 'lm-crit' : 'lm-warn';
+  const icon = v.kind === 'agree' ? '✓' : v.kind === 'incomplete' ? '✕' : '⚠';
+  $('#lab-verdict').innerHTML = `
+    <div class="lm-banner lm-${cls === 'lm-safe' ? 'safe' : cls === 'lm-crit' ? 'crit' : 'warn'}">
+      <span class="lm-banner-icon" aria-hidden="true">${icon}</span>
+      <div class="lm-banner-text">
+        <p class="lm-banner-status" data-verdict="${v.kind}">${v.headline}</p>
+        <p class="lm-banner-sub">${v.detail}</p>
+      </div>
+    </div>`;
+}
+
+/** Run the sweep with the current control values and paint every result panel. */
+function runLab(budgetOverride?: number): void {
+  const maxLog2M = Number(($('#lab-maxm') as HTMLInputElement).value);
+  const trials = Number(($('#lab-trials') as HTMLInputElement).value);
+  const budgetInput = $('#lab-budget') as HTMLInputElement;
+  const budget =
+    budgetOverride ?? Math.max(1, Math.floor(Number(budgetInput.value) || 1));
+  if (budgetOverride !== undefined) budgetInput.value = String(budgetOverride);
+
+  const status = $('#lab-status');
+  const runBtn = $('#lab-run') as HTMLButtonElement;
+  const starveBtn = $('#lab-starve') as HTMLButtonElement;
+  runBtn.disabled = true;
+  starveBtn.disabled = true;
+  status.textContent = `Searching… ${(maxLog2M + 1) * trials} real decodings queued.`;
+
+  // Yield one frame so the "Searching…" text paints before the (fast) work.
+  window.setTimeout(() => {
+    const t0 = performance.now();
+    const result = runDoomSweep({ maxLog2M, trials, budget });
+    const ms = performance.now() - t0;
+    lastSweep = result;
+
+    status.textContent =
+      `${result.totalTrials} searches run in ${Math.round(ms)} ms · ` +
+      `${result.totalSolved} found and re-verified a real weight-${result.code.w} error · ` +
+      `budget ${budget.toLocaleString()} per search · seed ${result.seed}.`;
+    renderLabVerdict(result);
+    renderLabChart(result);
+    renderLabTable(result);
+    runBtn.disabled = false;
+    starveBtn.disabled = false;
+  }, 0);
+}
+
 /* ============================================================ theme toggle */
 function initThemeToggle(): void {
   const btn = $('#theme-toggle') as HTMLButtonElement;
@@ -759,6 +1016,43 @@ function init(): void {
     renderPrimer();
   });
 
+  // [7,4] decode-one-out-of-many: sliders relabel live, the button searches.
+  const hM = $('#hdoom-m') as HTMLInputElement;
+  const hT = $('#hdoom-trials') as HTMLInputElement;
+  const paintHdoomLabels = (): void => {
+    $('#hdoom-m-val').textContent = hM.value;
+    $('#hdoom-trials-val').textContent = hT.value;
+    hM.setAttribute(
+      'aria-valuetext',
+      `${hM.value} of ${HAMMING_SYNDROME_COUNT} syndromes targeted`,
+    );
+    hT.setAttribute('aria-valuetext', `${hT.value} scans averaged`);
+  };
+  paintHdoomLabels();
+  hM.addEventListener('input', paintHdoomLabels);
+  hT.addEventListener('input', paintHdoomLabels);
+  $('#hdoom-run').addEventListener('click', renderHammingDoom);
+
+  // The measured toy-DOOM lab.
+  $('#lab-n').textContent = String(TOY_N);
+  $('#lab-r').textContent = String(TOY_R);
+  $('#lab-w').textContent = String(TOY_W);
+  const labMaxM = $('#lab-maxm') as HTMLInputElement;
+  const labTrials = $('#lab-trials') as HTMLInputElement;
+  const paintLabLabels = (): void => {
+    $('#lab-maxm-val').textContent = labMaxM.value;
+    $('#lab-trials-val').textContent = labTrials.value;
+    labMaxM.setAttribute('aria-valuetext', `sweep up to 2 to the power ${labMaxM.value} targets`);
+    labTrials.setAttribute('aria-valuetext', `${labTrials.value} searches averaged per point`);
+  };
+  paintLabLabels();
+  labMaxM.addEventListener('input', paintLabLabels);
+  labTrials.addEventListener('input', paintLabLabels);
+  $('#lab-run').addEventListener('click', () => runLab());
+  // The break-it path: a budget far too small, so searches genuinely fail and
+  // the verdict has to refuse the claim.
+  $('#lab-starve').addEventListener('click', () => runLab(40));
+
   // DOOM √M panel: its own targets slider, plus theme re-render handled by update()
   const doomSlider = $('#doom-targets') as HTMLInputElement;
   doomSlider.addEventListener('input', () => {
@@ -788,11 +1082,14 @@ function init(): void {
     });
   });
 
-  // keep the SVG crisp if the user resizes / rotates the device
+  // keep the SVGs crisp if the user resizes / rotates the device
   let raf = 0;
   window.addEventListener('resize', () => {
     cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(() => renderChart(Number(slider.value)));
+    raf = requestAnimationFrame(() => {
+      renderChart(Number(slider.value));
+      if (lastSweep) renderLabChart(lastSweep);
+    });
   });
 }
 

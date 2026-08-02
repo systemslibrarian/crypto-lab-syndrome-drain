@@ -1,11 +1,17 @@
 /**
  * model.ts — the computation core for Syndrome Drain.
  *
- * Pure, deterministic, DOM-free. Every number is real arithmetic on PUBLISHED
- * Level-1 parameters from May & Sá Diogo, "Multi-Instance Security Degradation
- * of Code-Based KEMs", IACR ePrint 2026/517. NOTHING here is simulated, random,
- * or invented. This module runs NO decoding and NO DOOM attack — it COMPUTES
- * effective bit-security from the paper's stated √D degradation law.
+ * DOM-free. The scheme model is pure and deterministic: every number is real
+ * arithmetic on PUBLISHED Level-1 parameters from May & Sá Diogo, "Multi-Instance
+ * Security Degradation of Code-Based KEMs", IACR ePrint 2026/517. NOTHING there
+ * is simulated or invented, and NO attack is run against those parameters — that
+ * half of the module COMPUTES effective bit-security from the paper's stated √D
+ * degradation law.
+ *
+ * The [7,4] Hamming section at the bottom is different in kind: it runs real,
+ * exhaustive searches on a 7-bit toy code that carries no security. Those
+ * counts are measured, not modeled, and the two halves are kept clearly apart.
+ * The larger toy DOOM search lives in doom.ts.
  *
  * Audit trail: every constant cites PAPER-NOTES.md (which cites the PDF). See
  * model.test-notes.md for the prose derivation of each function.
@@ -187,6 +193,158 @@ export function cosetForSyndrome(s: ReadonlyArray<0 | 1>): Array<Array<0 | 1>> {
   }
   out.sort((a, b) => weight(a) - weight(b));
   return out;
+}
+
+/* ------------------------------------------- decode-one-out-of-many, at 7 bits
+ *
+ * The same [7,4] code, now with M targets instead of one — the smallest honest
+ * version of the whole page's subject. The attacker is handed M syndromes and
+ * needs to explain ANY ONE of them; it scans the 128 possible error vectors in
+ * a uniformly random order and stops at the first vector whose syndrome is in
+ * the target set. Everything below is either exhaustively enumerated or counted
+ * during a real scan.
+ *
+ * This tiny code is small enough to try a WHOLE error vector at a time, so its
+ * discount is the full M. The big DOOM lab (doom.ts) cannot afford whole errors
+ * and has to pair up half-errors instead, and that pairing is exactly where the
+ * discount drops from M to √M. Seeing both is the point.
+ */
+
+/** Number of distinct syndromes of the [7,4] code (2^3). */
+export const HAMMING_SYNDROME_COUNT = 1 << HAMMING_R; // 8
+/** Number of length-7 vectors (2^7) — the whole search space. */
+export const HAMMING_VECTOR_COUNT = 1 << HAMMING_N; // 128
+/** Vectors per syndrome: 2^7 / 2^3 = 16, identical for every syndrome. */
+export const HAMMING_COSET_SIZE = HAMMING_VECTOR_COUNT / HAMMING_SYNDROME_COUNT; // 16
+
+/** Pack a 3-bit syndrome into an integer 0..7 (row 1 is the high bit). */
+export function hammingSyndromeToInt(s: ReadonlyArray<0 | 1>): number {
+  if (s.length !== HAMMING_R) throw new Error(`syndrome must have length ${HAMMING_R}`);
+  return s[0] * 4 + s[1] * 2 + s[2];
+}
+
+/** Unpack an integer 0..7 back into a 3-bit syndrome vector. */
+export function intToHammingSyndrome(v: number): Array<0 | 1> {
+  if (!Number.isInteger(v) || v < 0 || v >= HAMMING_SYNDROME_COUNT) {
+    throw new Error(`syndrome int must be an integer in [0, ${HAMMING_SYNDROME_COUNT})`);
+  }
+  return [((v >> 2) & 1) as 0 | 1, ((v >> 1) & 1) as 0 | 1, (v & 1) as 0 | 1];
+}
+
+/** Syndrome of the length-7 vector whose bits are the low 7 bits of `mask`. */
+export function hammingSyndromeOfMask(mask: number): number {
+  let s = 0;
+  for (let j = 0; j < HAMMING_N; j++) {
+    if ((mask >> j) & 1) {
+      let col = 0;
+      for (let r = 0; r < HAMMING_R; r++) col |= HAMMING_H[r][j] << (HAMMING_R - 1 - r);
+      s ^= col;
+    }
+  }
+  return s;
+}
+
+/**
+ * Expected number of vectors examined before a random-order scan of all 128
+ * hits one of M distinct target syndromes. Exact, not estimated: every syndrome
+ * has exactly 16 preimages, so 16·M of the 128 vectors are hits, and the
+ * expected position of the first hit in a uniformly random permutation of N
+ * items containing K hits is (N + 1) / (K + 1).
+ */
+export function hammingDoomExpectedGuesses(M: number): number {
+  if (!Number.isInteger(M) || M < 1 || M > HAMMING_SYNDROME_COUNT) {
+    throw new Error(`M must be an integer in [1, ${HAMMING_SYNDROME_COUNT}]`);
+  }
+  return (HAMMING_VECTOR_COUNT + 1) / (HAMMING_COSET_SIZE * M + 1);
+}
+
+export interface HammingDoomTrial {
+  /** How many vectors the scan examined before its first hit. */
+  guesses: number;
+  /** The error vector found (length 7). */
+  found: Array<0 | 1>;
+  /** Which target it decoded (index into the target list). */
+  targetIndex: number;
+}
+
+/** Fisher–Yates shuffle of 0..count-1 using the supplied RNG. */
+function shuffledIndices(count: number, rng: () => number): number[] {
+  const a = Array.from({ length: count }, (_, i) => i);
+  for (let i = count - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Pick M distinct target syndromes (as ints 0..7), uniformly at random. */
+export function pickHammingTargets(M: number, rng: () => number): number[] {
+  if (!Number.isInteger(M) || M < 1 || M > HAMMING_SYNDROME_COUNT) {
+    throw new Error(`M must be an integer in [1, ${HAMMING_SYNDROME_COUNT}]`);
+  }
+  return shuffledIndices(HAMMING_SYNDROME_COUNT, rng).slice(0, M).sort((a, b) => a - b);
+}
+
+/**
+ * One real decode-one-out-of-many scan over the [7,4] code: walk all 128 error
+ * vectors in a random order, stop at the first whose syndrome is one of the
+ * targets, and re-verify H·e against that target before returning. Because
+ * every syndrome has 16 preimages, a hit always exists — this scan cannot fail,
+ * and `guesses` is a genuinely measured count.
+ */
+export function runHammingDoomTrial(targets: readonly number[], rng: () => number): HammingDoomTrial {
+  if (targets.length === 0) throw new Error('need at least one target syndrome');
+  const order = shuffledIndices(HAMMING_VECTOR_COUNT, rng);
+  for (let i = 0; i < order.length; i++) {
+    const mask = order[i];
+    const s = hammingSyndromeOfMask(mask);
+    const idx = targets.indexOf(s);
+    if (idx === -1) continue;
+    const found = Array.from({ length: HAMMING_N }, (_, j) => ((mask >> j) & 1) as 0 | 1);
+    // Re-verify with the matrix routine, not the packed one, before reporting.
+    if (hammingSyndromeToInt(hammingSyndrome(found)) !== targets[idx]) {
+      throw new Error('internal: Hamming DOOM hit failed re-verification');
+    }
+    return { guesses: i + 1, found, targetIndex: idx };
+  }
+  throw new Error('internal: no hit in a full scan — impossible for this code');
+}
+
+export interface HammingDoomRun {
+  M: number;
+  targets: number[];
+  trials: number;
+  /** Mean measured guesses across the trials. */
+  meanGuesses: number;
+  /** The exact expectation for this M, computed in closed form. */
+  expectedGuesses: number;
+  /** Every trial's guess count, in order (the lab shows the first few). */
+  samples: number[];
+  /** The last trial's recovered error, for display. */
+  lastFound: Array<0 | 1>;
+  lastTargetIndex: number;
+}
+
+/** Run `trials` independent scans against the same M targets and average them. */
+export function runHammingDoom(M: number, trials: number, rng: () => number): HammingDoomRun {
+  if (!Number.isInteger(trials) || trials < 1) throw new Error('trials must be >= 1');
+  const targets = pickHammingTargets(M, rng);
+  const samples: number[] = [];
+  let last: HammingDoomTrial | null = null;
+  for (let t = 0; t < trials; t++) {
+    last = runHammingDoomTrial(targets, rng);
+    samples.push(last.guesses);
+  }
+  return {
+    M,
+    targets,
+    trials,
+    meanGuesses: samples.reduce((a, b) => a + b, 0) / samples.length,
+    expectedGuesses: hammingDoomExpectedGuesses(M),
+    samples,
+    lastFound: last!.found,
+    lastTargetIndex: last!.targetIndex,
+  };
 }
 
 /** Look up a scheme by id; throws on unknown id (keeps callers honest). */

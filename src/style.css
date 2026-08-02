@@ -1488,3 +1488,194 @@ code,
 .mono {
   overflow-wrap: anywhere;
 }
+
+/* ============ STEP 2b — [7,4] decode-one-out-of-many mini-exhibit ============ */
+.hdoom {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--border);
+}
+.hdoom-h {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.hdoom-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.5rem 1.2rem;
+  align-items: end;
+  margin: 1rem 0;
+}
+.hdoom-controls input[type='range'] {
+  width: 100%;
+  grid-row: 2;
+}
+.hdoom-controls .toggle-line {
+  grid-row: 1;
+}
+.hdoom-controls .preset {
+  grid-row: 2;
+  white-space: nowrap;
+}
+.hdoom-out {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev-2);
+  padding: 0.9rem 1.1rem;
+}
+.hdoom-line {
+  margin: 0 0 0.6rem;
+  color: var(--text);
+}
+.hdoom-line:last-child {
+  margin-bottom: 0;
+}
+.hdoom-line.small {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+.syndrome-chip-sm {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 5px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  letter-spacing: 0.12em;
+}
+.hdoom-stats {
+  list-style: none;
+  margin: 0 0 0.7rem;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.hdoom-stats li {
+  display: grid;
+  grid-template-columns: 6.5rem 5rem minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: baseline;
+}
+.hd-k {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+.hd-v {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-weight: 800;
+  color: var(--text);
+}
+.hd-u {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+.hdoom-stats li.hd-ok .hd-v {
+  color: var(--safe-ink);
+}
+.hdoom-stats li.hd-off .hd-v {
+  color: var(--danger-ink);
+}
+
+/* ================= STEP 4 — the measured toy-DOOM lab ================= */
+.lab-note {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev-2);
+  padding: 0.9rem 1.1rem;
+  margin: 1.1rem 0;
+}
+.lab-note .prose {
+  margin: 0;
+}
+.lab-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem 1.5rem;
+  align-items: end;
+  margin: 1.2rem 0 1rem;
+}
+.lab-field input[type='range'] {
+  width: 100%;
+}
+.lab-field input[type='number'] {
+  width: 100%;
+}
+.lab-field .muted {
+  margin: 0.35rem 0 0;
+}
+.lab-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.preset-go {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 800;
+}
+.preset-go:hover {
+  background: var(--accent);
+  filter: brightness(1.08);
+}
+.preset:disabled {
+  opacity: 0.75;
+  cursor: progress;
+}
+.lab-status {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+}
+.lab-verdict:empty {
+  display: none;
+}
+.lab-verdict {
+  margin-bottom: 1.1rem;
+}
+.lab-ideal {
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+.scheme-line.lab-enum {
+  stroke: var(--accent);
+}
+.scheme-line.lab-lookup {
+  stroke: var(--accent-3);
+}
+.lab-dot {
+  fill: var(--accent);
+  stroke: var(--bg-elev-2);
+  stroke-width: 1.5;
+}
+.lab-dot-hollow {
+  fill: var(--bg-elev-2);
+  stroke: var(--accent-3);
+  stroke-width: 2;
+}
+@media (max-width: 720px) {
+  .hdoom-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hdoom-controls .toggle-line,
+  .hdoom-controls input[type='range'],
+  .hdoom-controls .preset {
+    grid-row: auto;
+  }
+  .hdoom-stats li {
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+  }
+  .hdoom-stats .hd-u {
+    grid-column: 1 / -1;
+  }
+}

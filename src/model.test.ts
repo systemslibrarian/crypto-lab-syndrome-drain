@@ -23,7 +23,18 @@ import {
   hammingSyndrome,
   weight,
   cosetForSyndrome,
+  HAMMING_SYNDROME_COUNT,
+  HAMMING_VECTOR_COUNT,
+  HAMMING_COSET_SIZE,
+  hammingSyndromeToInt,
+  intToHammingSyndrome,
+  hammingSyndromeOfMask,
+  hammingDoomExpectedGuesses,
+  pickHammingTargets,
+  runHammingDoomTrial,
+  runHammingDoom,
 } from './model.ts';
+import { makeRng } from './doom.ts';
 
 const bike = getScheme('bike');
 const hqc = getScheme('hqc');
@@ -203,5 +214,91 @@ describe('display bounds', () => {
         expect(max).toBeGreaterThan(s.paperCrossoverLog2D);
       }
     }
+  });
+});
+
+/* ------------------------------------------- decode-one-out-of-many at 7 bits */
+describe('the [7,4] decode-one-out-of-many exhibit', () => {
+  it('packs and unpacks syndromes losslessly', () => {
+    for (let v = 0; v < HAMMING_SYNDROME_COUNT; v++) {
+      expect(hammingSyndromeToInt(intToHammingSyndrome(v))).toBe(v);
+    }
+    expect(() => intToHammingSyndrome(8)).toThrow();
+    expect(() => intToHammingSyndrome(-1)).toThrow();
+  });
+
+  it('the packed syndrome agrees with the matrix routine on all 128 vectors', () => {
+    for (let mask = 0; mask < HAMMING_VECTOR_COUNT; mask++) {
+      const e = Array.from({ length: HAMMING_N }, (_, j) => ((mask >> j) & 1) as 0 | 1);
+      expect(hammingSyndromeOfMask(mask)).toBe(hammingSyndromeToInt(hammingSyndrome(e)));
+    }
+  });
+
+  it('every syndrome has exactly 16 preimages — so 16·M of 128 vectors are hits', () => {
+    const counts = new Array(HAMMING_SYNDROME_COUNT).fill(0);
+    for (let mask = 0; mask < HAMMING_VECTOR_COUNT; mask++) counts[hammingSyndromeOfMask(mask)]++;
+    for (const c of counts) expect(c).toBe(HAMMING_COSET_SIZE);
+  });
+
+  it('the closed-form expectation is exact at both ends', () => {
+    expect(hammingDoomExpectedGuesses(1)).toBeCloseTo(129 / 17, 12);
+    // With all 8 syndromes targeted every vector is a hit, so it always takes 1.
+    expect(hammingDoomExpectedGuesses(8)).toBe(1);
+    expect(() => hammingDoomExpectedGuesses(0)).toThrow();
+    expect(() => hammingDoomExpectedGuesses(9)).toThrow();
+  });
+
+  it('picks M distinct targets', () => {
+    const rng = makeRng(21);
+    for (let M = 1; M <= HAMMING_SYNDROME_COUNT; M++) {
+      const t = pickHammingTargets(M, rng);
+      expect(t.length).toBe(M);
+      expect(new Set(t).size).toBe(M);
+    }
+    expect(() => pickHammingTargets(9, rng)).toThrow();
+  });
+
+  it('a scan really recovers a vector whose syndrome is one of the targets', () => {
+    const rng = makeRng(77);
+    for (let M = 1; M <= 8; M++) {
+      const targets = pickHammingTargets(M, rng);
+      const trial = runHammingDoomTrial(targets, rng);
+      expect(trial.guesses).toBeGreaterThanOrEqual(1);
+      expect(trial.guesses).toBeLessThanOrEqual(HAMMING_VECTOR_COUNT);
+      expect(hammingSyndromeToInt(hammingSyndrome(trial.found))).toBe(targets[trial.targetIndex]);
+    }
+  });
+
+  it('targeting all 8 syndromes always succeeds on the very first guess', () => {
+    const rng = makeRng(5);
+    const run = runHammingDoom(8, 40, rng);
+    expect(run.samples.every((g) => g === 1)).toBe(true);
+    expect(run.meanGuesses).toBe(1);
+    expect(run.expectedGuesses).toBe(1);
+  });
+
+  it('the measured mean tracks the exact expectation across every M', () => {
+    // 8 values of M × 400 real scans = 3200 measured searches. The variance of
+    // the geometric-ish first-hit position is largest at M = 1 (sd ≈ 7), so 400
+    // trials puts the standard error near 0.35 and a ±25% band is > 4 sigma.
+    const rng = makeRng(20260802);
+    for (let M = 1; M <= HAMMING_SYNDROME_COUNT; M++) {
+      const run = runHammingDoom(M, 400, rng);
+      const expected = run.expectedGuesses;
+      expect(run.meanGuesses).toBeGreaterThan(expected * 0.75);
+      expect(run.meanGuesses).toBeLessThan(expected * 1.25 + 0.001);
+    }
+  });
+
+  it('more targets are never more work — the discount is real and measured', () => {
+    const rng = makeRng(31);
+    const one = runHammingDoom(1, 400, rng).meanGuesses;
+    const eight = runHammingDoom(8, 400, rng).meanGuesses;
+    expect(eight).toBeLessThan(one / 4);
+  });
+
+  it('rejects a trial with no targets or a bad trial count', () => {
+    expect(() => runHammingDoomTrial([], makeRng(1))).toThrow();
+    expect(() => runHammingDoom(1, 0, makeRng(1))).toThrow();
   });
 });

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Syndrome Drain — an educational visualizer for the multi-instance security degradation of code-based KEMs (BIKE, HQC, Classic McEliece), IACR ePrint 2026/517. Computes effective bit-security from published NIST Level-1 parameters; it runs no attack."
+      content="Syndrome Drain — an educational visualizer for the multi-instance security degradation of code-based KEMs (BIKE, HQC, Classic McEliece), IACR ePrint 2026/517. Computes effective bit-security from published NIST Level-1 parameters, and runs a real toy DOOM search that measures the √M discount at toy scale."
     />
     <meta name="color-scheme" content="dark light" />
     <!-- Theme bootstrap: must run before any paint. Dark is the default when
@@ -171,7 +171,8 @@
           <p class="cl-hero-desc">
             Drag the reuse count D and watch each KEM's effective bit-security
             drain toward the 143-bit NIST Level-1 floor — computed live from
-            published Level-1 parameters, with no attack run.
+            published Level-1 parameters — then run a real decode-one-out-of-many
+            search at toy scale and measure the √M discount yourself.
           </p>
         </div>
         <aside class="cl-hero-why" aria-label="Why it matters">
@@ -441,6 +442,54 @@
                 once</strong>, and why that makes the search cheaper.
               </p>
             </div>
+
+            <!-- decode-one-out-of-many, at a size you can read -->
+            <div class="hdoom" id="hdoom">
+              <h3 class="hdoom-h">
+                Now hand the attacker <em>several</em> syndromes at once
+              </h3>
+              <p class="prose">
+                This is the whole page in miniature. The attacker is given
+                <strong>M</strong> of this code's 8 possible syndromes and only has
+                to explain <em>any one</em> of them. It walks all 128 error vectors
+                in a random order and stops at the first one that matches a target.
+                The count below is what that scan actually took — no formula is
+                substituted for it. Because every syndrome has exactly 16 of the 128
+                vectors behind it, the closed-form expectation is
+                <code class="mono">129 / (16·M + 1)</code>, and the measured average
+                is checked against it.
+              </p>
+
+              <div class="hdoom-controls">
+                <label class="toggle-line" for="hdoom-m">
+                  Targets M: <strong id="hdoom-m-val">1</strong>
+                  <span class="muted small">of 8 syndromes</span>
+                </label>
+                <input type="range" id="hdoom-m" min="1" max="8" step="1" value="1" />
+
+                <label class="toggle-line" for="hdoom-trials">
+                  Scans to average: <strong id="hdoom-trials-val">200</strong>
+                </label>
+                <input type="range" id="hdoom-trials" min="20" max="600" step="20" value="200" />
+
+                <button type="button" class="preset" id="hdoom-run">Run the scans</button>
+              </div>
+
+              <div id="hdoom-out" class="hdoom-out" aria-live="polite">
+                <p class="muted small">
+                  Press <strong>Run the scans</strong> to search for real.
+                </p>
+              </div>
+
+              <p class="prose footnote">
+                This tiny code is small enough to try a <em>whole</em> error vector
+                per guess, so its discount is the full <strong>M</strong>. Real
+                code-based KEMs cannot afford whole vectors — their attacks pair up
+                <em>half</em>-errors — and that pairing is exactly what turns the
+                discount from M into <strong>√M</strong>. The lab in step 4 runs
+                that paired search and measures the √M exponent.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -526,18 +575,141 @@
           </div>
 
           <p class="prose footnote">
-            The dots are a faithful cartoon of a real amortised
+            The dots above are a cartoon of a real amortised
             <abbr class="gloss" title="Information-Set Decoding: the family of best-known classical algorithms for syndrome decoding. MMT and Dumer–Stern are specific ISD variants.">ISD</abbr>
-            search, not the search itself (the demo runs no attack). The point is
-            only the <em>shape</em>: probability of a hit rises with the number of
-            targets, so cost per hit falls as √M. Precise per-scheme figures come
-            from the paper's tables, transcribed in the reference card below.
+            search — a picture of the <em>shape</em>, drawn from fixed geometry, not
+            a measurement. The step below stops drawing and runs the search: it
+            builds a real random code, plants real errors, and measures what the
+            discount actually costs. Precise per-scheme figures for the real KEMs
+            come from the paper's tables, transcribed in the reference card below.
+          </p>
+        </section>
+
+        <!-- ============ THE MEASURED LAB: RUN A REAL TOY DOOM ============ -->
+        <section id="doom-lab" class="card card-primary" aria-labelledby="doomlab-h">
+          <p class="eyebrow card-step"><span class="step-num">4</span> Run it yourself</p>
+          <h2 id="doomlab-h">Measure the √M discount on a real code</h2>
+          <p class="lede">
+            Everything above this point is either transcribed from the paper or
+            drawn. This is not. Press <strong>Run the sweep</strong> and the page
+            builds a random binary code, plants genuine weight-6 errors, and runs an
+            honest two-list syndrome search against M targets at a time — for
+            M = 1, 2, 4, … — counting every syndrome computation it performs. The
+            slope printed at the end is a least-squares fit to <em>those counts</em>.
+            If it lands near <strong>−0.5</strong>, you measured the ½-bit-per-doubling
+            law that the whole chart at the top rests on.
+          </p>
+
+          <div class="lab-note">
+            <p class="prose">
+              <strong>Toy scale, stated plainly.</strong> The code is
+              <code class="mono">n = <span id="lab-n">96</span></code> bits long with
+              <code class="mono">r = <span id="lab-r">20</span></code> parity checks and error weight
+              <code class="mono">w = <span id="lab-w">6</span></code> — a syndrome space of about a million,
+              searchable in milliseconds and carrying <strong>no security at
+              all</strong>. Real BIKE, HQC and Classic McEliece parameters are
+              thousands of bits and cannot be attacked in a browser, or on any
+              machine. What carries over from this toy to those schemes is the
+              <em>scaling of work with M</em>, not the difficulty.
+            </p>
+          </div>
+
+          <div class="lab-controls">
+            <div class="lab-field">
+              <label class="toggle-line" for="lab-maxm">
+                Sweep up to M = 2<sup id="lab-maxm-val">8</sup>
+              </label>
+              <input type="range" id="lab-maxm" min="3" max="9" step="1" value="8" />
+            </div>
+            <div class="lab-field">
+              <label class="toggle-line" for="lab-trials">
+                Searches averaged per point: <strong id="lab-trials-val">12</strong>
+              </label>
+              <input type="range" id="lab-trials" min="2" max="24" step="1" value="12" />
+            </div>
+            <div class="lab-field">
+              <label class="toggle-line" for="lab-budget">
+                Enumeration budget per search
+              </label>
+              <input
+                type="number"
+                id="lab-budget"
+                min="1"
+                max="500000"
+                step="100"
+                value="200000"
+              />
+              <p class="muted small">
+                Cap on syndrome computations. Set it too low and searches will fail —
+                the verdict will refuse to fit a slope, and say so.
+              </p>
+            </div>
+            <div class="lab-actions">
+              <button type="button" class="preset preset-go" id="lab-run">
+                Run the sweep
+              </button>
+              <button type="button" class="preset" id="lab-starve">
+                Starve it (budget 40)
+              </button>
+            </div>
+          </div>
+
+          <p id="lab-status" class="lab-status" role="status" aria-live="polite">
+            Nothing has been run yet. No slope is claimed.
+          </p>
+
+          <div id="lab-verdict" class="lab-verdict"></div>
+
+          <figure class="chart-figure">
+            <div id="lab-chart" class="chart" role="img" aria-labelledby="lab-chart-cap">
+              <!-- SVG injected by main.ts after a run -->
+            </div>
+            <figcaption id="lab-chart-cap" class="chart-cap">
+              Measured work against the number of targets, both on log₂ axes.
+              Filled points are the syndrome computations the search actually
+              performed; hollow points are its table lookups. A textual description
+              of the last run is available to screen readers below.
+            </figcaption>
+            <p id="lab-chart-desc" class="visually-hidden" aria-live="polite"></p>
+          </figure>
+
+          <div class="table-wrap">
+            <table class="readout" id="lab-table">
+              <caption class="visually-hidden">
+                Measured DOOM work per target count
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Targets M</th>
+                  <th scope="col" class="num">Syndrome computations</th>
+                  <th scope="col" class="num">Table lookups</th>
+                  <th scope="col" class="num">Solved</th>
+                </tr>
+              </thead>
+              <tbody id="lab-body">
+                <tr>
+                  <td colspan="4" class="muted">No run yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="prose footnote">
+            Why the two counters move in opposite directions: the search never
+            enumerates a whole error, it enumerates <em>half</em>-errors into two
+            lists and looks for a pair whose syndromes XOR to a target. With
+            <code class="mono">L</code> entries per list and M targets there are
+            <code class="mono">L²·M</code> chances but only <code class="mono">2L</code>
+            syndrome computations, so <code class="mono">L ≈ 2^(r/2)/√M</code> — the
+            enumeration falls as 1/√M. The lookups, at <code class="mono">L·M</code>,
+            rise as √M. That tension is the reason the DOOM discount is √M rather
+            than M, and both halves of it are counted here rather than asserted.
           </p>
         </section>
 
         <!-- ======================= MECHANISM ======================= -->
         <section class="card" aria-labelledby="mech-h">
-          <p class="eyebrow card-step"><span class="step-num">4</span> Understand it</p>
+          <p class="eyebrow card-step"><span class="step-num">5</span> Understand it</p>
           <h2 id="mech-h">Why it drains: the DOOM lever</h2>
           <div class="prose">
             <p>
@@ -589,7 +761,7 @@
 
         <!-- =================== ROTATION CALCULATOR =================== -->
         <section class="card card-primary" aria-labelledby="ops-h">
-          <p class="eyebrow card-step"><span class="step-num">5</span> Act on it</p>
+          <p class="eyebrow card-step"><span class="step-num">6</span> Act on it</p>
           <h2 id="ops-h">Key-rotation policy calculator</h2>
           <p class="lede">
             The operational takeaway: rotate public keys on a schedule tied to
@@ -829,9 +1001,20 @@
               schemes remain sound when public keys are rotated.
             </li>
             <li>
-              Numbers are <strong>computed</strong> from published Level-1
-              parameters and the paper's √D law. The demo runs
-              <strong>no decoding and no DOOM</strong>.
+              The per-scheme numbers for BIKE, HQC and Classic McEliece are
+              <strong>computed</strong> from published Level-1 parameters and the
+              paper's √D law. <strong>No attack is run against those
+              parameters</strong>, and none could be — they are far beyond any
+              machine.
+            </li>
+            <li>
+              The searches this page <em>does</em> run (step 2's [7,4] scan and
+              step 4's toy-DOOM lab) are on <strong>deliberately tiny codes with
+              no security</strong> — a 20-bit syndrome space. They measure how
+              attacker work <em>scales</em> with the number of targets. They say
+              nothing about the absolute difficulty of breaking a real KEM, and
+              the measured slope is a fit to a finite sample, so it moves a little
+              from run to run.
             </li>
             <li>v1 covers <strong>NIST Level 1 only</strong> (HQC-1, BIKE-1, mceliece3488-64).</li>
             <li id="gap-crossover">

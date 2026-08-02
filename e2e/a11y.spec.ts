@@ -49,7 +49,27 @@ async function driveDemo(page: Page): Promise<void> {
   await expect(page.locator('#readout-body tr')).toHaveCount(3);
   await expect(page.locator('#ops-body tr')).toHaveCount(3);
   await expect(page.locator('#src-body tr')).toHaveCount(3);
-  await expect(page.locator('.lm-banner')).toBeVisible();
+  await expect(page.locator('.lm-banner').first()).toBeVisible();
+
+  // Run the [7,4] decode-one-out-of-many exhibit so its measured output is on
+  // the page to be scanned.
+  await page.locator('#hdoom-run').click();
+  await expect(page.locator('#hdoom-out .hdoom-stats li')).toHaveCount(3);
+
+  // Run the toy-DOOM lab twice: once starved (critical verdict, failed rows)
+  // and once for real (success verdict, full chart + table), so axe measures
+  // both verdict palettes and the injected SVG.
+  await page.locator('#lab-starve').click();
+  await expect(page.locator('[data-verdict]')).toHaveAttribute('data-verdict', 'incomplete', {
+    timeout: 30_000,
+  });
+  await page.locator('#lab-budget').fill('200000');
+  await page.locator('#lab-run').click();
+  await expect(page.locator('[data-verdict]')).toHaveAttribute('data-verdict', 'agree', {
+    timeout: 30_000,
+  });
+  await expect(page.locator('#lab-body tr')).toHaveCount(9);
+  await expect(page.locator('#lab-chart svg')).toBeVisible();
 }
 
 async function scan(page: Page): Promise<void> {

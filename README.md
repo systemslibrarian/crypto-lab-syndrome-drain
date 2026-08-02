@@ -15,8 +15,14 @@ Level‑1 parameters it falls below the 143‑bit floor at roughly **D = 2¹¹
 (BIKE‑1)**, **2²¹ (mceliece3488‑64)**, and **2³⁴ (HQC‑1)** — so **public keys must
 be rotated on a schedule tied to session volume.** This lab **computes** effective
 bit-security from published NIST Level‑1 parameters and the paper's √D degradation
-law; it runs **no attack** — no decoding, no DOOM execution, no random numbers.
-Every number on screen is real arithmetic you can audit in
+law — **no attack is run against those parameters**, and none could be. Alongside
+that it **runs a real DOOM search at deliberately toy scale**: a random binary code
+with a 20‑bit syndrome space, genuine planted weight‑6 errors, and an honest
+two‑list match against M targets at once, counting every syndrome computation it
+performs. The −½ slope it reports is a least‑squares fit to those measured counts,
+so the ½‑bit‑per‑doubling law is something you *measure* on this page rather than
+something the page asserts. Every published-parameter number on screen is real
+arithmetic you can audit in
 [`src/model.ts`](src/model.ts) and [`PAPER-NOTES.md`](PAPER-NOTES.md). To keep the
 core vocabulary concrete rather than assumed, the page first lets you *build* a
 syndrome by hand on a real **[7,4] Hamming code** (`s = H·e` over GF(2), with a
@@ -30,7 +36,8 @@ backend.
 - Use it to understand **multi-instance security degradation** — how reusing one code-based KEM public key across many sessions erodes effective bit-security.
 - Use it to plan **key-rotation policy** — the rotation calculator turns a session rate into a rotation cadence with realistic traffic-scenario presets.
 - Use it to see **why BIKE drains faster** than HQC or Classic McEliece (the `n·D` vs `D` syndrome-count mechanism), and why ML-KEM/Kyber is not hit the same way.
-- Do NOT read the on-screen numbers as a break of code-based crypto — it is a teaching visualizer of an asymptotic √D model, runs no attack, and per-instance hardness is intact; verify before relying.
+- Use it to **measure the √M discount yourself** — the toy-DOOM lab runs a real two-list syndrome search against M targets and fits the slope to its own counters, and starving its budget makes it refuse to claim a slope at all.
+- Do NOT read the on-screen per-scheme numbers as a break of code-based crypto — those are a teaching visualizer of an asymptotic √D model against which **no attack is run**, per-instance hardness is intact, and the searches that *do* run are on toy codes carrying no security; verify before relying.
 
 ## Live Demo
 
@@ -40,9 +47,10 @@ The page is layered for progressive disclosure, walking a newcomer from a concre
 
 1. **See it** — an interactive **erosion chart** (slider for D, preset jump buttons for each crossover, three live curves, the red floor line, both modeled and paper‑stated crossover markers, a live **security‑level meter** for the "is it OK?" glance, and a live readout table), preceded by a **TL;DR** card.
 2. **What is a syndrome?** — a hands‑on primer on a real **[7,4] Hamming code**: flip error bits and watch the parity‑check matrix multiply `H·e = s` into a 3‑bit syndrome, then see **two different error patterns collide on the same syndrome** — so decoding means "find the *lowest‑weight* error," the hard problem the KEMs stand on. (All arithmetic is real coding theory in [`src/model.ts`](src/model.ts), tested.)
-3. **Why √M?** — a visual for the DOOM bargain: **M target syndromes as dots**, a single "sweep" of attacker work that scores a hit whenever it overlaps *any* target, so more targets means more hits per unit work — hence ≈ **√M** less work to land one, a **−½·log₂(M)** discount. The panel ties its M back to the chart's current D.
-4. **Understand it** — the **DOOM mechanism** explainer with live syndrome counts (BIKE's `n·D` vs `D`), with inline glosses for load‑bearing jargon (syndrome, parity‑check matrix, ISD, MMT, quasi‑cyclic ring).
-5. **Act on it** — a **key‑rotation policy calculator** with realistic traffic‑scenario presets.
+3. **Why √M?** — a visual for the DOOM bargain: **M target syndromes as dots**, a single "sweep" of attacker work that scores a hit whenever it overlaps *any* target, so more targets means more hits per unit work — hence ≈ **√M** less work to land one, a **−½·log₂(M)** discount. The panel ties its M back to the chart's current D. (This one panel is a drawn cartoon, and says so.)
+4. **Run it yourself** — the **toy-DOOM lab**. Press *Run the sweep* and the page builds a random `n = 96`, `r = 20` code, plants real weight‑6 errors, and runs an honest two‑list search against M = 1, 2, 4, … targets, re‑verifying every recovered error against `H` before counting it solved. It plots the **measured** syndrome computations (falling as 1/√M) against the **measured** table lookups (rising as √M) and fits the slope; landing inside ±0.2 of −0.5 is reported as agreement, and anything else is reported as disagreement. *Starve it* caps the budget so searches genuinely fail — and the verdict then refuses to fit a slope at all rather than quietly reporting a number it did not earn. Step 2's primer carries a matching miniature: the same [7,4] code with M targets, scanned for real and checked against the exact expectation `129 / (16·M + 1)`.
+5. **Understand it** — the **DOOM mechanism** explainer with live syndrome counts (BIKE's `n·D` vs `D`), with inline glosses for load‑bearing jargon (syndrome, parity‑check matrix, ISD, MMT, quasi‑cyclic ring).
+6. **Act on it** — a **key‑rotation policy calculator** with realistic traffic‑scenario presets.
 
 Below the spine sit a **Common misconceptions** FAQ (including why ML‑KEM/Kyber isn't hit the same way), a **Parameters & sources** drill‑down where every number cites the paper plus a copy‑pasteable **"verify it yourself"** block, and an honest **Known Gaps** panel. Every model‑derived number carries an inline **"idealized √D model"** badge, and the chart plots two crossover markers per scheme (a filled dot for the model, a hollow diamond for the paper's full‑ISD table) so the model‑vs‑reality distinction is native to the UI. You can deep‑link a specific reuse count with `?d=` (log₂ of D), e.g. `…/?d=21`.
 
