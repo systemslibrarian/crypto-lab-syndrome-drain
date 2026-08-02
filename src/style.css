@@ -10,6 +10,7 @@
   --bg-elev: #161b22;
   --bg-elev-2: #1c2330;
   --border: #2a3441;
+  --control-border: #66788c;
   --text: #e6edf3;
   --text-muted: #9aa7b4;
   /* dim text must clear 4.5:1 on every surface it lands on — including the
@@ -55,6 +56,7 @@
   --bg-elev: #ffffff;
   --bg-elev-2: #eef2f7;
   --border: #d4dbe3;
+  --control-border: #6f7b87;
   --text: #11181f;
   --text-muted: #4b5663;
   /* #556069 clears 4.5:1 on every light surface, incl. the tinted danger row
@@ -401,7 +403,7 @@ input[type='number'] {
   font-size: 1rem;
   background: var(--bg-elev-2);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-sm);
 }
 input[type='number']:focus {
