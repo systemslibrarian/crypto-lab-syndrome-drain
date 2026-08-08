@@ -769,7 +769,11 @@ tr.is-below td {
   color: var(--text);
 }
 .tldr-stat strong {
-  color: var(--danger);
+  /* --danger-ink, not --danger. This callout sits on --danger-soft, and in
+     LIGHT theme #cf222e on that tint measures 4.25:1 — under AA. The file
+     already carries a darkened ink token for exactly this composition (see the
+     comment beside --danger-ink); this rule was simply not using it. */
+  color: var(--danger-ink);
 }
 .tldr-stat-tag {
   display: inline-block;
@@ -872,8 +876,15 @@ tr.is-below td {
   background: var(--safe);
   color: #08111f;
 }
+/* The three banner headlines below use the INK tokens, not the fill tokens.
+   `.lm-banner-status` is `clamp(1.1rem, 3.5vw, 1.35rem)` at weight 800, so at a
+   1280px viewport it clamps to 21.6px and qualifies as LARGE text (3:1), while
+   at 380px it clamps to 17.6px and does not (4.5:1) — the same colour passes on
+   a desktop and fails on a phone. Light `--safe` (#1a7f37) measured 4.31:1 on
+   the safe tint at phone width; `--safe-ink` is the darkened value this file
+   already defines for exactly that composition. */
 .lm-safe .lm-banner-status {
-  color: var(--safe);
+  color: var(--safe-ink);
 }
 .lm-banner.lm-warn {
   border-color: var(--warn);
@@ -895,7 +906,7 @@ tr.is-below td {
   color: #fff;
 }
 .lm-crit .lm-banner-status {
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 .lm-live {
   font-size: 0.72rem;
@@ -1210,8 +1221,13 @@ abbr.gloss {
 /* a cell H covers but is clean (0): faint. Covered AND flipped (contributes to
    the parity): highlighted. Not covered by this row: dimmed out. */
 .pm-off {
+  /* No `opacity: 0.35` here. It faded --text-dim to rgb(71, 79, 93) on the
+     matrix background — 1.92:1, against 4.5:1 required — on digits the reader
+     is meant to read as "this row does not cover that bit". --text-dim on its
+     own already measures ~6:1 and still reads as the dimmest of the three cell
+     states, which are further distinguished by background: pm-off has none,
+     pm-cov sits on --bg, pm-hit on --accent. */
   color: var(--text-dim);
-  opacity: 0.35;
 }
 .pm-cov {
   color: var(--text-muted);

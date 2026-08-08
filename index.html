@@ -901,14 +901,19 @@
                 Every curve is one line of arithmetic. Effective classical
                 security at reuse count <code>D</code> is:
               </p>
-              <pre class="formula"><code>effective_bits(D) = T1 - 0.5 * log2(D)</code></pre>
+              <!-- tabindex + role: .formula is overflow-x: auto and holds no
+                   focusable content, so at 380px the formula scrolls with no
+                   keyboard route at all (WCAG 2.1.1). role="region" is what
+                   makes the tab stop announce itself rather than arriving as an
+                   unnamed focus target. -->
+              <pre class="formula" tabindex="0" role="region" aria-label="Effective-bits formula"><code>effective_bits(D) = T1 - 0.5 * log2(D)</code></pre>
               <p>
                 Plug in each scheme's published single-instance MMT complexity
                 <code>T₁</code> (HQC-1 = 160.04, BIKE-1 = 148.17,
                 mceliece3488-64 = 151.22) and the NIST Level-1 floor of 143 bits.
                 The crossover is where it hits the floor:
               </p>
-              <pre class="formula"><code>crossover_log2D = 2 * (T1 - 143)</code></pre>
+              <pre class="formula" tabindex="0" role="region" aria-label="Crossover formula"><code>crossover_log2D = 2 * (T1 - 143)</code></pre>
               <p>
                 That gives BIKE ≈ 2<sup>10.3</sup>, McEliece ≈ 2<sup>16.4</sup>
                 and HQC ≈ 2<sup>34.1</sup> — model outputs quoted to one decimal,
