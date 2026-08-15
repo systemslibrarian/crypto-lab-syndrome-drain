@@ -26,10 +26,18 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # src/model.test.ts and src/doom.test.ts — the bit-security model and the
+      # toy DOOM search that measures the sqrt(M) discount. They ran only in
+      # ci.yml, a separate workflow on the same push, which cannot stop the
+      # deploy that push triggers: a red CI and a green publish are one event.
+      - name: Unit tests
+        run: npm test
       - run: npm run build
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
-      - name: Accessibility gate (axe-core, WCAG A/AA)
+      # `test:a11y` is bare `playwright test`, so this also runs doom-lab,
+      # render-states and border — not just the axe pass.
+      - name: Browser claims and accessibility gate
         run: npm run test:a11y
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
