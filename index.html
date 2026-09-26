@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Syndrome Drain — an educational visualizer for the multi-instance security degradation of code-based KEMs (BIKE, HQC, Classic McEliece), IACR ePrint 2026/517. Computes effective bit-security from published NIST Level-1 parameters, and runs a real toy DOOM search that measures the √M discount at toy scale."
+      content="Syndrome Drain — an educational visualizer for the ISD/DOOM multi-instance attack model on code-based KEMs (BIKE, HQC, Classic McEliece), IACR ePrint 2026/517. Computes model-specific work factors, not overall security, and runs a toy DOOM search."
     />
     <meta name="color-scheme" content="dark light" />
     <!-- Theme bootstrap: must run before any paint. Dark is the default when
@@ -160,7 +160,7 @@
           <h1 class="cl-hero-title">Syndrome Drain</h1>
           <p class="cl-hero-sub">Code-based KEMs · DOOM · IACR ePrint 2026/517</p>
           <p class="cl-hero-desc">
-            Drag the reuse count D and watch each KEM's effective bit-security
+            Drag the reuse count D and watch each KEM's ISD/DOOM work estimate
             drain toward the 143-bit NIST Level-1 floor — computed live from
             published Level-1 parameters — then run a real decode-one-out-of-many
             search at toy scale and measure the √M discount yourself.
@@ -170,9 +170,9 @@
           <span class="cl-hero-why-label">WHY IT MATTERS</span>
           <p class="cl-hero-why-text">
             Reusing one public key across many sessions never errors — handshakes
-            still succeed — yet the security you were certified at silently erodes.
-            Firmware, cached server keys and static prekeys can slip below Level 1
-            unnoticed unless you rotate on session volume.
+            still succeed — yet the modeled multi-instance decoding margin erodes.
+            Firmware, cached server keys and static prekeys can cross the ISD/DOOM
+            model's Level-1 reference line unless you rotate on session volume.
           </p>
         </aside>
       </header>
@@ -182,28 +182,28 @@
         <section class="card tldr" aria-labelledby="tldr-h">
           <p class="eyebrow">TL;DR — read this first</p>
           <h2 id="tldr-h" class="tldr-h">
-            A reused public key quietly loses security — no attack required
+            Public-key reuse reduces the modeled decoding work
           </h2>
           <p class="tldr-pitch">
             It never throws an error. The handshake still succeeds and the
-            ciphertext still decrypts — yet, quietly, the security margin you were
-            promised is draining away. Code-based KEMs (BIKE, HQC, Classic
-            McEliece) rest on the hardness of <strong>syndrome decoding</strong>.
+            ciphertext still decrypts — yet the ISD/DOOM work estimate can fall.
+            Code-based KEMs (BIKE, HQC, Classic McEliece) face
+            <strong>syndrome-decoding</strong> attacks.
             Each time you reuse <em>one</em> public key for another session, an
             attacker collects another syndrome — and decoding <em>one out of
             many</em> gets cheaper. Reuse a key for <strong>D</strong> sessions
-            and its effective security falls by about <strong>½·log₂(D)</strong>
-            bits.
+            and this attack model's work estimate falls by about
+            <strong>½·log₂(D)</strong> bits. Other attack paths are not included.
           </p>
 
           <p class="tldr-stat">
             <span class="tldr-stat-tag">The trap</span>
-            Nothing breaks and nothing warns you. A single key reused for
-            <strong>2¹¹ sessions</strong> (BIKE) or <strong>2²¹</strong> (Classic
-            McEliece) has already slipped below the very NIST Level-1 bar the
-            scheme was certified at — silently. Single-session security is
-            untouched; the only fix is to rotate keys on a schedule tied to
-            traffic.
+            Nothing breaks and nothing warns you. The source paper's full-ISD
+            table estimates a Level-1 crossover at <strong>2¹¹ sessions</strong>
+            (BIKE) or <strong>2²¹</strong> (Classic McEliece); this page's
+            simplified curve crosses earlier for McEliece. These are modeled
+            work factors, not a certification verdict. Rotation limits this
+            multi-instance attack; it does not repair a structural weakness.
           </p>
 
           <div class="tldr-grid">
@@ -256,7 +256,7 @@
           <h2 id="viz-h">The erosion, as you reuse one public key</h2>
           <p class="lede">
             Drag <strong>D</strong> — the number of session keys derived from a
-            single public key — and watch effective security drain toward the
+            single public key — and watch the ISD/DOOM estimate drain toward the
             <span class="floor-word">143-bit Level&nbsp;1 floor</span>.
           </p>
 
@@ -294,7 +294,7 @@
             id="level-meter"
             class="level-meter"
             role="group"
-            aria-label="Security-level meter at the current D"
+            aria-label="ISD/DOOM model margin at the current D"
           >
             <!-- injected by main.ts -->
           </div>
@@ -309,7 +309,7 @@
               <!-- SVG injected by main.ts -->
             </div>
             <figcaption id="chart-cap" class="chart-cap">
-              Effective classical security (bits) vs. log₂(D) for HQC-1, BIKE-1
+              ISD/DOOM classical work estimate (bits) vs. log₂(D) for HQC-1, BIKE-1
               and mceliece3488-64. The red line is the 143-bit Level-1 floor. A
               full textual description of the current state is available to
               screen readers below.
@@ -327,15 +327,15 @@
             </label>
           </div>
 
-          <table class="readout" aria-label="Live security readout at the current D">
+          <table class="readout" aria-label="Live ISD/DOOM estimate at the current D">
             <caption class="visually-hidden">
-              Effective security, margin to the 143-bit floor, and status for
+              ISD/DOOM work estimate, margin to the 143-bit floor, and status for
               each scheme at the currently selected D.
             </caption>
             <thead>
               <tr>
                 <th scope="col">Scheme</th>
-                <th scope="col">Effective bits</th>
+                <th scope="col">ISD/DOOM bits</th>
                 <th scope="col">Margin to floor</th>
                 <th scope="col">Status</th>
               </tr>
@@ -347,12 +347,16 @@
 
           <p class="source-note">
             <span class="src-badge src-model">idealized √D model</span>
-            These effective-bit and margin numbers come from the simplified law
+            These model-specific work and margin numbers come from the simplified law
             <code>T₁ − ½·log₂(D)</code> — <strong>not</strong> the paper's
             full-ISD tables. On the chart, the filled dot ● marks this model's
             crossover and the hollow diamond ◇ marks the paper's. For Classic
             McEliece the two visibly differ; trust the
-            <strong>earlier (more conservative)</strong> of the two.
+            <strong>earlier (more conservative)</strong> of the two <em>within
+            the ISD/DOOM model</em>. <a href="https://eprint.iacr.org/2026/1984"
+            target="_blank" rel="noopener noreferrer">Weis (2026 preprint)</a>
+            estimates separate structural key recovery for Classic McEliece;
+            this plot does not include that attack.
           </p>
         </section>
 
@@ -567,7 +571,7 @@
 
           <p class="prose footnote">
             The dots above are a cartoon of a real amortised
-            <abbr class="gloss" title="Information-Set Decoding: the family of best-known classical algorithms for syndrome decoding. MMT and Dumer–Stern are specific ISD variants.">ISD</abbr>
+            <abbr class="gloss" title="Information-Set Decoding: a family of generic classical algorithms for syndrome decoding. MMT and Dumer–Stern are ISD variants; structural attacks are separate.">ISD</abbr>
             search — a picture of the <em>shape</em>, drawn from fixed geometry, not
             a measurement. The step below stops drawing and runs the search: it
             builds a real random code, plants real errors, and measures what the
@@ -715,7 +719,7 @@
               The attacker's best tool for that search is
               <abbr class="gloss" title="MMT (May–Meurer–Thomae): a specific information-set-decoding algorithm — the attacker's best known variant. T₁ below is its single-instance cost.">MMT</abbr>,
               one member of the
-              <abbr class="gloss" title="Information-Set Decoding: the family of best-known classical algorithms for syndrome decoding (MMT, Dumer–Stern, …).">ISD</abbr>
+              <abbr class="gloss" title="Information-Set Decoding: a family of generic classical algorithms for syndrome decoding (MMT, Dumer–Stern, …). Structural attacks are separate.">ISD</abbr>
               family.
             </p>
             <p>
@@ -755,9 +759,10 @@
           <p class="eyebrow card-step"><span class="step-num">6</span> Act on it</p>
           <h2 id="ops-h">Key-rotation policy calculator</h2>
           <p class="lede">
-            The operational takeaway: rotate public keys on a schedule tied to
-            session volume. Set a security target and a per-key session budget;
-            this tells you how much head-room each scheme has.
+            For the ISD/DOOM attack modeled here, rotate public keys on a
+            schedule tied to session volume. Set a reference work-factor target
+            and a per-key session budget; this shows the modeled headroom. It
+            cannot certify overall security or mitigate a structural key attack.
           </p>
 
           <div class="ops-controls">
@@ -809,7 +814,7 @@
                 value="50000"
                 inputmode="numeric"
               />
-              <p class="muted small">Used to turn a safe-D limit into a rotation cadence.</p>
+              <p class="muted small">Used to turn the ISD/DOOM reuse limit into a rotation cadence.</p>
             </div>
           </div>
 
@@ -827,16 +832,16 @@
             <span class="muted small">(sets the budget to one year at that rate)</span>
           </div>
 
-          <table class="readout ops-table" aria-label="Maximum safe reuse before rotation">
+          <table class="readout ops-table" aria-label="Maximum modeled ISD/DOOM reuse before rotation">
             <caption class="visually-hidden">
               For each scheme: the maximum number of session keys before
-              effective security drops below the target, and whether the planned
-              budget stays safe.
+              the ISD/DOOM estimate drops below the target, and whether the planned
+              budget stays within that model's limit.
             </caption>
             <thead>
               <tr>
                 <th scope="col">Scheme</th>
-                <th scope="col">Max safe D (rotate before)</th>
+                <th scope="col">Max ISD/DOOM D (rotate before)</th>
                 <th scope="col">Rotate at least every</th>
                 <th scope="col">Your budget vs. limit</th>
               </tr>
@@ -848,11 +853,16 @@
 
           <p class="source-note">
             <span class="src-badge src-model">idealized √D model</span>
-            "Max safe D" is computed from the same simplified √D law as the chart.
+            "Max ISD/DOOM D" is computed from the same simplified √D law as the chart.
             Where the paper's full-ISD crossover sits <em>higher</em> (Classic
             McEliece: paper 2²¹ vs the model's ≈2<sup>16.4</sup>), the model is the
             <strong>more conservative</strong> bound — it tells you to rotate
-            sooner, which is the safe direction to err.
+            sooner within this model. A separate
+            <a href="https://eprint.iacr.org/2026/1984" target="_blank"
+            rel="noopener noreferrer">2026 preprint</a> estimates structural
+            Classic McEliece key recovery even at D&nbsp;=&nbsp;1. Its full-size
+            costs are heuristic and impractical; rotating keys here does not
+            restore a structural security margin.
           </p>
         </section>
 
@@ -935,20 +945,21 @@
             <div class="faq-item">
               <dt>“Doesn't this mean the KEM is broken?”</dt>
               <dd>
-                No. <strong>Per-instance</strong> syndrome decoding is exactly as
-                hard as before — nothing here breaks the underlying problem. This
-                is <em>multi-instance amortization</em>: it only shows up when one
-                key is reused for many sessions, and rotating the key restores the
-                full security level.
+                This lab's DOOM result is <em>multi-instance amortization</em>,
+                not a practical attack on production keys. It does not assess
+                other attack paths. For Classic McEliece, Weis's 2026 preprint
+                estimates structural key recovery below generic decoding costs
+                under stated heuristics; rotation does not restore the earlier
+                generic-ISD security estimate.
               </dd>
             </div>
             <div class="faq-item">
               <dt>“Is single-session security still fine?”</dt>
               <dd>
-                Yes. At <code>D = 1</code> the effective security equals the full
-                single-instance value <code>T₁</code>. The drain needs
-                <strong>many</strong> sessions derived from the
-                <strong>same</strong> public key; a key used once loses nothing.
+                At <code>D = 1</code> this <em>ISD/DOOM model</em> equals its
+                single-instance value <code>T₁</code>. That does not establish
+                overall security: structural attacks on the key are outside the
+                calculation, whether the key is used once or many times.
               </dd>
             </div>
             <div class="faq-item">
@@ -967,10 +978,10 @@
             <div class="faq-item">
               <dt>“So I should never reuse a public key?”</dt>
               <dd>
-                Reuse is fine <em>up to a budget</em>. The point isn't “never
-                reuse” — it's “bound D and rotate before the floor.” The
-                <a href="#ops-h">rotation calculator</a> turns your traffic into a
-                concrete safe budget and cadence.
+                Bound D to control this <em>one</em> multi-instance attack. The
+                <a href="#ops-h">rotation calculator</a> turns traffic into an
+                ISD/DOOM-only reuse budget and cadence. It does not certify a
+                key as safe against other attacks.
               </dd>
             </div>
             <div class="faq-item">
@@ -979,8 +990,9 @@
                 It's an <strong>idealized model</strong> (slope exactly ½). The
                 paper's full-ISD numbers differ — most visibly for Classic
                 McEliece, whose real ISD slope (≈0.39) is shallower. The chart
-                plots <strong>both</strong> crossovers so you never have to trust
-                one blindly; when they disagree, prefer the more conservative.
+                plots <strong>both</strong> crossovers so you can compare their
+                assumptions. A structural key-recovery estimate is not part of
+                either curve.
               </dd>
             </div>
           </dl>
@@ -993,8 +1005,8 @@
           <ul class="prose">
             <li>
               This is <strong>asymptotic multi-instance degradation</strong>, not
-              a break of syndrome decoding. Per-instance hardness is intact; the
-              schemes remain sound when public keys are rotated.
+              a break of syndrome decoding. Rotation controls this reuse effect,
+              but says nothing about independent structural attacks on a key.
             </li>
             <li>
               The per-scheme numbers for BIKE, HQC and Classic McEliece are

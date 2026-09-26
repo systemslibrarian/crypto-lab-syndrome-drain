@@ -249,10 +249,10 @@ function renderReadout(D: number): void {
           ${s.label} <span class="muted small">${s.paramSet}</span>
         </span>
       </td>
-      <td data-label="Effective bits" class="num">${fmt(bits, 1)}</td>
+      <td data-label="ISD/DOOM bits" class="num">${fmt(bits, 1)}</td>
       <td data-label="Margin to floor" class="num">${margin >= 0 ? '+' : ''}${fmt(margin, 1)}</td>
       <td data-label="Status">
-        <span class="pill ${below ? 'danger' : 'safe'}">${below ? 'BELOW FLOOR' : 'SAFE'}</span>
+        <span class="pill ${below ? 'danger' : 'safe'}">${below ? 'ISD BELOW FLOOR' : 'ISD ABOVE FLOOR'}</span>
       </td>`;
     body.appendChild(tr);
   }
@@ -277,10 +277,10 @@ const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
 /** Qualitative band for a margin (bits) above the floor — labels, not numbers. */
 function levelBand(margin: number): { label: string; cls: string } {
-  if (margin >= 8) return { label: 'Comfortable', cls: 'lm-safe' };
-  if (margin >= 0) return { label: 'Thin margin', cls: 'lm-warn' };
-  if (margin >= -8) return { label: 'Below floor', cls: 'lm-danger' };
-  return { label: 'Dangerously low', cls: 'lm-crit' };
+  if (margin >= 8) return { label: 'ISD margin ≥8', cls: 'lm-safe' };
+  if (margin >= 0) return { label: 'Thin ISD margin', cls: 'lm-warn' };
+  if (margin >= -8) return { label: 'ISD below floor', cls: 'lm-danger' };
+  return { label: 'ISD far below floor', cls: 'lm-crit' };
 }
 
 /** Overall risk verdict (worst scheme drives it) — the big glanceable banner. */
@@ -296,24 +296,24 @@ function overallRisk(worstMargin: number, belowCount: number): {
       icon: '✕',
       status:
         belowCount === 3
-          ? 'All three are below NIST Level 1'
-          : `${belowCount} of 3 are below NIST Level 1`,
-      sub: 'Effective security has dropped under the 143-bit floor. Rotate the key.',
+          ? 'ISD/DOOM: all three below the reference floor'
+          : `ISD/DOOM: ${belowCount} of 3 below the reference floor`,
+      sub: 'ISD/DOOM estimate is below the 143-bit floor. Rotate for this attack model; other attacks require separate analysis.',
     };
   }
   if (worstMargin < 8) {
     return {
       level: 'warn',
       icon: '⚠',
-      status: 'Margin is getting thin',
-      sub: 'Still above the floor, but the safety buffer is shrinking — plan to rotate.',
+      status: 'ISD/DOOM margin is getting thin',
+      sub: 'ISD/DOOM estimate is above the floor, but its margin is shrinking — plan to rotate.',
     };
   }
   return {
     level: 'safe',
     icon: '✓',
-    status: 'Comfortably above the floor',
-    sub: 'Every scheme keeps a healthy margin at this reuse level.',
+    status: 'ISD/DOOM margin above the floor',
+    sub: 'Every scheme has an ISD/DOOM margin at this reuse level; structural attacks are outside this model.',
   };
 }
 
@@ -442,10 +442,10 @@ function renderOps(): void {
           ${s.label} <span class="muted small">${s.paramSet}</span>
         </span>
       </td>
-      <td data-label="Max safe D" class="num">${limitText}</td>
+      <td data-label="Max ISD/DOOM D" class="num">${limitText}</td>
       <td data-label="Rotate every" class="num">${cadenceText}</td>
       <td data-label="Your budget">
-        <span class="pill ${safe ? 'safe' : 'danger'}">${safe ? 'WITHIN LIMIT' : 'ROTATE SOONER'}</span>
+        <span class="pill ${safe ? 'safe' : 'danger'}">${safe ? 'WITHIN ISD LIMIT' : 'ROTATE FOR DOOM'}</span>
       </td>`;
     body.appendChild(tr);
   }

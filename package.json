@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Educational visualizer for the multi-instance security degradation of code-based KEMs (BIKE, HQC, Classic McEliece) — IACR ePrint 2026/517. Computes effective bit-security from published Level-1 parameters, and runs a real toy DOOM search that measures the √M discount at toy scale.",
+  "description": "Educational visualizer for the ISD/DOOM multi-instance attack model on code-based KEMs (BIKE, HQC, Classic McEliece) — IACR ePrint 2026/517. Computes model-specific work factors and runs a toy DOOM search.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

@@ -31,25 +31,25 @@ test.beforeEach(async ({ page }) => {
 test('the verdict banner changes state at each computed crossover', async ({ page }) => {
   await setD(page, 10);
   await expect(page.locator('.lm-banner')).toHaveClass(/lm-warn/);
-  await expect(page.locator('.lm-banner-status')).toContainText('Margin is getting thin');
+  await expect(page.locator('.lm-banner-status')).toContainText('ISD/DOOM margin is getting thin');
   await expect(page.locator('#readout-body tr.is-below')).toHaveCount(0);
   await expect(page.locator('#readout-body .pill.danger')).toHaveCount(0);
 
   // One doubling later BIKE is under the floor and the whole banner flips.
   await setD(page, 11);
   await expect(page.locator('.lm-banner')).toHaveClass(/lm-crit/);
-  await expect(page.locator('.lm-banner-status')).toContainText('1 of 3 are below NIST Level 1');
+  await expect(page.locator('.lm-banner-status')).toContainText('ISD/DOOM: 1 of 3 below the reference floor');
   await expect(page.locator('#readout-body tr.is-below')).toHaveCount(1);
   await expect(page.locator('#readout-body .pill.danger')).toHaveCount(1);
   await expect(page.locator('#readout-body .pill.safe')).toHaveCount(2);
 
   await setD(page, 17);
-  await expect(page.locator('.lm-banner-status')).toContainText('2 of 3 are below NIST Level 1');
+  await expect(page.locator('.lm-banner-status')).toContainText('ISD/DOOM: 2 of 3 below the reference floor');
   await expect(page.locator('#readout-body tr.is-below')).toHaveCount(2);
 
   await setD(page, 35);
   await expect(page.locator('.lm-banner-status')).toContainText(
-    'All three are below NIST Level 1',
+    'ISD/DOOM: all three below the reference floor',
   );
   await expect(page.locator('#readout-body tr.is-below')).toHaveCount(3);
   await expect(page.locator('#readout-body .pill.safe')).toHaveCount(0);
@@ -60,14 +60,14 @@ test('the per-scheme meter bands span every qualitative label', async ({ page })
   // BIKE starts with only 5.17 bits of headroom; the other two are comfortable.
   await expect(page.locator('.lm-item.lm-warn')).toHaveCount(1);
   await expect(page.locator('.lm-item.lm-safe')).toHaveCount(2);
-  await expect(page.locator('.lm-item.lm-warn .lm-band')).toHaveText('Thin margin');
+  await expect(page.locator('.lm-item.lm-warn .lm-band')).toHaveText('Thin ISD margin');
 
   const max = await page.locator('#d-slider').getAttribute('max');
   await setD(page, Number(max));
   // At the far end BIKE and McEliece are more than 8 bits under the floor.
   await expect(page.locator('.lm-item.lm-crit')).toHaveCount(2);
   await expect(page.locator('.lm-item.lm-danger')).toHaveCount(1);
-  await expect(page.locator('.lm-item.lm-danger .lm-band')).toHaveText('Below floor');
+  await expect(page.locator('.lm-item.lm-danger .lm-band')).toHaveText('ISD below floor');
 });
 
 test('the chart paints one curve, one crossover mark and one live dot per scheme', async ({
@@ -143,6 +143,10 @@ test('the rotation calculator flips its per-scheme verdicts on the inputs', asyn
   await page.locator('#budget-input').dispatchEvent('input');
   // 2^10 sessions is inside every scheme's limit at a zero safety margin.
   await expect(page.locator('#ops-body .pill.safe')).toHaveCount(3);
+  await expect(page.locator('#ops-body .pill.safe').first()).toHaveText('WITHIN ISD LIMIT');
+  await expect(page.locator('#ops-h + .lede')).toContainText('cannot certify overall security');
+  await expect(page.locator('#visualizer .source-note')).toContainText('structural key recovery');
+  await expect(page.locator('#visualizer a[href="https://eprint.iacr.org/2026/1984"]')).toHaveCount(1);
 
   await page.locator('#budget-input').fill('1000000000');
   await page.locator('#budget-input').dispatchEvent('input');

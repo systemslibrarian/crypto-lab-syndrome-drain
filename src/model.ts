@@ -5,7 +5,7 @@
  * arithmetic on PUBLISHED Level-1 parameters from May & Sá Diogo, "Multi-Instance
  * Security Degradation of Code-Based KEMs", IACR ePrint 2026/517. NOTHING there
  * is simulated or invented, and NO attack is run against those parameters — that
- * half of the module COMPUTES effective bit-security from the paper's stated √D
+ * half of the module COMPUTES an ISD/DOOM work estimate from the paper's stated √D
  * degradation law.
  *
  * The [7,4] Hamming section at the bottom is different in kind: it runs real,
@@ -58,7 +58,7 @@ export interface SchemeParams {
 
   /**
    * Paper-stated crossover, as log2(D): the smallest log2(D) at which the
-   * paper's COMPUTED effective security drops below targetSecurityBits.
+   * paper's COMPUTED ISD/DOOM work estimate drops below targetSecurityBits.
    */
   paperCrossoverLog2D: number | 'UNKNOWN'; // source: 2026/517 Abstract & Table 2/5/7
 
@@ -366,7 +366,7 @@ export function syndromeCount(scheme: SchemeParams, D: number): number {
 }
 
 /**
- * Effective classical security in bits given D session keys derived from one
+ * ISD/DOOM-only classical work estimate in bits given D session keys derived from one
  * public key. Implements the paper's √D degradation law literally:
  *
  *     effective(D) = T1 − ½·log2(D)
@@ -381,12 +381,12 @@ export function effectiveSecurityBits(scheme: SchemeParams, D: number): number {
   return scheme.singleInstanceBits - DOOM_SLOPE_BITS_PER_DOUBLING * Math.log2(D);
 }
 
-/** Security margin (bits) above the floor at D session keys (negative ⇒ below). */
+/** ISD/DOOM model margin (bits) above the floor at D session keys (negative ⇒ below). */
 export function marginToFloor(scheme: SchemeParams, D: number): number {
   return effectiveSecurityBits(scheme, D) - scheme.targetSecurityBits;
 }
 
-/** True once D session keys push effective security below the Level-1 floor. */
+/** True once D session keys push the ISD/DOOM estimate below the Level-1 floor. */
 export function isBelowFloor(scheme: SchemeParams, D: number): boolean {
   return effectiveSecurityBits(scheme, D) < scheme.targetSecurityBits;
 }
@@ -446,7 +446,7 @@ export function crossoverD(scheme: SchemeParams): CrossoverResult {
 
 /**
  * Largest integer log2(D) at which a scheme still holds >= targetBits of
- * effective security (i.e. the last "safe" reuse count before rotation).
+ * ISD/DOOM work estimate (a reuse budget for this attack only, not total security).
  *   effective(D) = T1 − ½·log2(D) ≥ target  ⇔  log2(D) ≤ 2·(T1 − target).
  * May be negative, meaning even a single key (D=1) is already below target.
  * source: same √D law as effectiveSecurityBits.
