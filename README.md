@@ -116,7 +116,7 @@ No runtime dependencies; TypeScript + Vite only. The pure computation core
 input, same output, no `Math.random`, no `Date`, no network. Its invariants
 (D=1 ⇒ T₁, crossover ordering, the model‑vs‑paper agreement flags, no `n·D`
 double‑counting, D<1 throws) are pinned by [`src/model.test.ts`](src/model.test.ts)
-and run in CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+and run in CI ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)).
 
 ## Deploy
 
