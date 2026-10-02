@@ -33,6 +33,8 @@ backend.
 
 **Separate structural research:** [Weis, ePrint 2026/1984 (preprint, revised September 25, 2026)](https://eprint.iacr.org/2026/1984) estimates Classic McEliece key recovery below generic ISD costs across five candidate parameter sets under stated heuristics and memory accounting. Only a toy-sized key recovery was completed; no practical production break was demonstrated. This is a different attack path that can matter even at `D = 1`: neither the chart nor key rotation addresses it. The calculator is **ISD/DOOM-only**, not an overall security verdict.
 
+**Deployment guidance (October 1, 2026):** [BSI](https://www.bsi.bund.de/DE/Service-Navi/Presse/Alle-Meldungen-News/Meldungen/2026/Classic-McEliece_261001.html) advises against using Classic McEliece in new developments or when planning new cryptographic applications. BSI states that its recommended parameter sets are not currently subject to a practical attack. This is deployment guidance following structural cryptanalysis, not an ISO withdrawal or a change to NIST’s 2025 decision. Earlier TR-02102-1 recommendations were limited to hybrid use.
+
 ## When to Use It
 
 - Use it to understand **multi-instance ISD/DOOM degradation** — how reusing one code-based KEM public key across many sessions lowers that attack model's work factor.
@@ -68,7 +70,7 @@ Below the spine sit a **Common misconceptions** FAQ (including why ML‑KEM/Kybe
 
 - **Code-based KEMs in PQC** — BIKE, HQC, and Classic McEliece are the code-based candidates from the NIST post-quantum process; HQC was selected for standardization.
 - **Key-rotation policy** — the result argues directly for rotating code-based KEM public keys on a schedule tied to how many sessions each key derives.
-- **Conservative / long-term deployments** — Classic McEliece is favored where decades-old, well-studied hardness assumptions matter, despite very large public keys.
+- **Historical long-term deployment rationale** — Classic McEliece was favored for its long history of analysis; BSI’s October 1, 2026 notice now advises against choosing it for new applications. The ISD/DOOM rotation model does not override that guidance or address structural key recovery.
 - **Hybrid post-quantum key exchange** — code-based KEMs are deployed alongside classical exchanges so security holds if either component survives.
 
 ## How to Run Locally
