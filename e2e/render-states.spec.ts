@@ -145,8 +145,26 @@ test('the rotation calculator flips its per-scheme verdicts on the inputs', asyn
   await expect(page.locator('#ops-body .pill.safe')).toHaveCount(3);
   await expect(page.locator('#ops-body .pill.safe').first()).toHaveText('WITHIN ISD LIMIT');
   await expect(page.locator('#ops-h + .lede')).toContainText('cannot certify overall security');
-  await expect(page.locator('#visualizer .source-note')).toContainText('structural key recovery');
-  await expect(page.locator('#visualizer a[href="https://eprint.iacr.org/2026/1984"]')).toHaveCount(1);
+  // Each note is identified by the source it cites, not by position and not by
+  // a phrase. #visualizer carries more than one .source-note since the
+  // 2026-10-01 BSI deployment-guidance paragraph was added, a bare locator
+  // matched both and Playwright's strict mode failed the whole suite -- and
+  // filtering on "structural key recovery" matched both too, because the BSI
+  // note says rotation does not mitigate it. The citation is the thing that
+  // makes each note itself, so a fourth note cannot break either assertion.
+  const structural = page
+    .locator('#visualizer .source-note')
+    .filter({ has: page.locator('a[href="https://eprint.iacr.org/2026/1984"]') });
+  await expect(structural).toHaveCount(1);
+  await expect(structural).toContainText('structural key recovery');
+
+  // The BSI guidance is a separate claim and carries its own assertion rather
+  // than riding along in a loosened one.
+  const bsi = page
+    .locator('#visualizer .source-note')
+    .filter({ has: page.locator('a[href*="bsi.bund.de"]') });
+  await expect(bsi).toHaveCount(1);
+  await expect(bsi).toContainText('advises against Classic McEliece');
 
   await page.locator('#budget-input').fill('1000000000');
   await page.locator('#budget-input').dispatchEvent('input');
