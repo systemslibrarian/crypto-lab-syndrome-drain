@@ -6,10 +6,11 @@
   "description": "Educational visualizer for the ISD/DOOM multi-instance attack model on code-based KEMs (BIKE, HQC, Classic McEliece) — IACR ePrint 2026/517. Computes model-specific work factors and runs a toy DOOM search.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && npm run test:maintenance && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:a11y": "playwright test"
+    "test:a11y": "playwright test",
+    "test:maintenance": "node --test tests/maintenance-controls.node.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

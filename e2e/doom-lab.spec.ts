@@ -73,6 +73,38 @@ test('the DOOM lab measures the √M law from searches it actually ran', async (
   await expect(page.locator('#lab-chart-desc')).toContainText('fitted slope');
 });
 
+test('changing controls retires completed and queued measurement evidence', async ({ page }) => {
+  await page.locator('#lab-trials').fill('2');
+  await page.locator('#lab-trials').dispatchEvent('input');
+  await page.locator('#lab-run').click();
+  await expect(page.locator('[data-verdict]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('#lab-chart svg')).toBeVisible();
+
+  // A completed measurement belongs to the controls that produced it. Moving
+  // any input must retire every derived panel, not leave an old verdict beside
+  // a new configuration.
+  await page.locator('#lab-budget').fill('199900');
+  await expect(page.locator('#lab-status')).toContainText('Controls changed');
+  await expect(page.locator('#lab-verdict')).toBeEmpty();
+  await expect(page.locator('#lab-chart')).toBeEmpty();
+  await expect(page.locator('#lab-chart-desc')).toBeEmpty();
+  await expect(page.locator('#lab-body')).toContainText('No result for the current controls');
+
+  // Exercise the setTimeout boundary deterministically: queue a run and change
+  // a control in the same browser task, before its callback is allowed to run.
+  await page.evaluate(() => {
+    (document.querySelector('#lab-run') as HTMLButtonElement).click();
+    const maxM = document.querySelector('#lab-maxm') as HTMLInputElement;
+    maxM.value = maxM.value === '8' ? '7' : '8';
+    maxM.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForTimeout(100);
+  await expect(page.locator('#lab-status')).toContainText('Controls changed');
+  await expect(page.locator('#lab-verdict')).toBeEmpty();
+  await expect(page.locator('#lab-chart')).toBeEmpty();
+  await expect(page.locator('#lab-body')).toContainText('No result for the current controls');
+});
+
 test('starving the budget makes the lab refuse to claim a slope', async ({ page }) => {
   await page.locator('#lab-starve').click();
 
