@@ -21,11 +21,42 @@ test('only the deploy job can mint Pages credentials', () => {
 });
 
 test('every third-party action is pinned to an immutable commit', () => {
-  const actions = [...workflow.matchAll(/^\s*-\s+uses:\s+([^@\s]+)@([^\s]+)/gm)];
+  // Both step shapes, because this workflow uses both: `- uses: x@sha`, and a
+  // step that opens with `- id:` or `- name:` and carries `uses:` on its own
+  // line. Anchored on `- uses:` alone, this control could not see the deploy
+  // step at all -- the one action that publishes the site -- so unpinning
+  // actions/deploy-pages back to @v5 left all six controls green. Measured,
+  // not reasoned about: that mutation is the reason this test changed.
+  const USES = /^[ \t]*(?:-[ \t]+)?uses:[ \t]+([^@\s]+)@([^\s]+)/gm;
+  const actions = [...workflow.matchAll(USES)];
+
+  // A declared denominator. Every `uses:` line present must be a `uses:` line
+  // parsed, so a step written in a shape this pattern cannot read fails here
+  // instead of passing unseen -- which is how the hole above stayed quiet.
+  const present = workflow.match(/^[ \t]*(?:-[ \t]+)?uses:/gm) ?? [];
+  assert.equal(
+    actions.length,
+    present.length,
+    `${present.length - actions.length} uses: line(s) this control cannot read`,
+  );
   assert.ok(actions.length > 0, 'workflow has no actions');
   for (const [, action, reference] of actions) {
     assert.match(reference, /^[0-9a-f]{40}$/, `${action} is not commit-pinned`);
   }
+
+  // Named explicitly, because it is the one the old pattern missed.
+  const names = actions.map(([, action]) => action);
+  assert.ok(names.includes('actions/deploy-pages'), 'the publishing action is not among the pinned ones');
+});
+
+test('an in-progress release is never cancelled', () => {
+  // Flipping this to `true` arrived in the same pull request as the pins and
+  // the provenance check, unmentioned in its summary, and deleted the comment
+  // that said why it was false. A cancelled deploy serves the previous build
+  // with nothing red to say so. If this value is ever to change, it should be
+  // changed deliberately, with this assertion in the diff.
+  const header = workflow.slice(0, workflow.indexOf('\njobs:'));
+  assert.match(header, /concurrency:\n  group: pages-\$\{\{ github\.ref \}\}\n  cancel-in-progress: false\n/);
 });
 
 test('pull requests do not perform Pages-only setup or package a deploy artifact', () => {

@@ -12,10 +12,16 @@ on:
 permissions:
   contents: read
 
-# A newer run for the same ref supersedes its older build or deployment.
+# One concurrent deploy, and an in-progress RELEASE is never cancelled. GitHub's
+# own Pages workflow says why: a cancelled deployment leaves the previous build
+# served with nothing red to say so, which is the exact shape `deploy-sync` calls
+# not-shipped ("a run that is cancelled ... does not count as shipped"). A queued
+# run supersedes an older QUEUED run on its own, so the newest commit still wins
+# without killing a publish in flight. 19 labs in this fleet carry this value,
+# re-derived from each lab's own origin/main on 2026-11-05.
 concurrency:
   group: pages-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
