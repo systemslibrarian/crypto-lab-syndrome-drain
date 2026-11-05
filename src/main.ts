@@ -749,6 +749,32 @@ function renderHammingDoom(): void {
    it measured. No point on this chart exists until a search produced it.
    ================================================================== */
 let lastSweep: DoomSweepResult | null = null;
+let labRunGeneration = 0;
+
+/** Remove evidence that no longer belongs to the controls currently on screen. */
+function clearLabResultPanels(): void {
+  lastSweep = null;
+  $('#lab-verdict').replaceChildren();
+  $('#lab-chart').replaceChildren();
+  $('#lab-chart-desc').textContent = '';
+
+  const tr = document.createElement('tr');
+  const td = document.createElement('td');
+  td.colSpan = 4;
+  td.className = 'muted';
+  td.textContent = 'No result for the current controls.';
+  tr.appendChild(td);
+  $('#lab-body').replaceChildren(tr);
+}
+
+/** Invalidate both a completed measurement and any callback waiting to run. */
+function invalidateLabEvidence(): void {
+  labRunGeneration++;
+  clearLabResultPanels();
+  $('#lab-status').textContent = 'Controls changed. Run the sweep to measure this configuration.';
+  ($('#lab-run') as HTMLButtonElement).disabled = false;
+  ($('#lab-starve') as HTMLButtonElement).disabled = false;
+}
 
 function renderLabChart(result: DoomSweepResult): void {
   const host = $('#lab-chart');
@@ -905,16 +931,23 @@ function runLab(budgetOverride?: number): void {
   const budget =
     budgetOverride ?? Math.max(1, Math.floor(Number(budgetInput.value) || 1));
   if (budgetOverride !== undefined) budgetInput.value = String(budgetOverride);
+  const generation = ++labRunGeneration;
 
   const status = $('#lab-status');
   const runBtn = $('#lab-run') as HTMLButtonElement;
   const starveBtn = $('#lab-starve') as HTMLButtonElement;
+  clearLabResultPanels();
   runBtn.disabled = true;
   starveBtn.disabled = true;
   status.textContent = `Searching… ${(maxLog2M + 1) * trials} real decodings queued.`;
 
   // Yield one frame so the "Searching…" text paints before the (fast) work.
   window.setTimeout(() => {
+    // A control input can arrive after this run was queued but before this
+    // callback begins. Never let that old request repaint evidence for the new
+    // on-screen parameters.
+    if (generation !== labRunGeneration) return;
+
     const t0 = performance.now();
     const result = runDoomSweep({ maxLog2M, trials, budget });
     const ms = performance.now() - t0;
@@ -1039,6 +1072,7 @@ function init(): void {
   $('#lab-w').textContent = String(TOY_W);
   const labMaxM = $('#lab-maxm') as HTMLInputElement;
   const labTrials = $('#lab-trials') as HTMLInputElement;
+  const labBudget = $('#lab-budget') as HTMLInputElement;
   const paintLabLabels = (): void => {
     $('#lab-maxm-val').textContent = labMaxM.value;
     $('#lab-trials-val').textContent = labTrials.value;
@@ -1046,8 +1080,15 @@ function init(): void {
     labTrials.setAttribute('aria-valuetext', `${labTrials.value} searches averaged per point`);
   };
   paintLabLabels();
-  labMaxM.addEventListener('input', paintLabLabels);
-  labTrials.addEventListener('input', paintLabLabels);
+  labMaxM.addEventListener('input', () => {
+    paintLabLabels();
+    invalidateLabEvidence();
+  });
+  labTrials.addEventListener('input', () => {
+    paintLabLabels();
+    invalidateLabEvidence();
+  });
+  labBudget.addEventListener('input', invalidateLabEvidence);
   $('#lab-run').addEventListener('click', () => runLab());
   // The break-it path: a budget far too small, so searches genuinely fail and
   // the verdict has to refuse the claim.
